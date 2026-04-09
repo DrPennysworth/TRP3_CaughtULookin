@@ -1,0 +1,54 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ../FrameXML/UI.xsd">
+    <Frame name="CULookinFrame" parent="UIParent" frameStrata="MEDIUM" hidden="true" inherits="BackdropTemplate">
+        <Size x="260" y="250"/>
+        <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="UIParent" relativePoint="TOPLEFT" x="300" y="-250"/>
+        </Anchors>
+        <Scripts>
+            <OnLoad>
+                self:EnableMouse(true)
+                self:SetMovable(true)
+                self:SetResizable(true)
+                self:SetClampedToScreen(true)
+            </OnLoad>
+            <OnMouseDown>
+                self:StartMoving()
+            </OnMouseDown>
+            <OnMouseUp>
+                self:StopMovingOrSizing()
+                CULookinDB.pos.x = self:GetLeft()
+                CULookinDB.pos.y = self:GetTop() - UIParent:GetTop()
+            </OnMouseUp>
+        </Scripts>
+        <Frames>
+            <Frame name="CULookinHeader" parent="CULookinFrame" enableMouse="true">
+                <Size x="0" y="28"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="CULookinFrame" x="0" y="0"/>
+                    <Anchor point="TOPRIGHT" relativeTo="CULookinFrame" x="0" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnMouseDown>
+                        self:GetParent():StartMoving()
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:GetParent():StopMovingOrSizing()
+                        CULookinDB.pos.x = self:GetParent():GetLeft()
+                        CULookinDB.pos.y = self:GetParent():GetTop() - UIParent:GetTop()
+                    </OnMouseUp>
+                </Scripts>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString name="CULookinTitle" inherits="GameFontNormal" setAllPoints="true" justifyH="CENTER" justifyV="MIDDLE" text="Caught U Lookin"/>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <Button name="CULookinClearButton" parent="CULookinFrame" inherits="UIPanelButtonTemplate" text="Clear Recent">
+                <Size x="90" y="22"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" relativeTo="CULookinFrame" x="5" y="5"/>
+                </Anchors>
+            </Button>
+        </Frames>
+    </Frame>
+</Ui>

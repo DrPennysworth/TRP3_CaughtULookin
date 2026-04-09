@@ -1,0 +1,41 @@
+# VSCode settings and local workspace files
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.orig
+*.rej
+*.log
+*.cache
+
+# Build artifacts / compiled output
+*.luac
+
+# GitHub stuff
+.github/
+
+# Ignore any personal secrets or secrets management files
+*.env
+*.env.*
+
+# Ignore editor and OS specific files
+*.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Ignore generated package manager lock files if not used in repo
+package-lock.json
+npm-debug.log
+
+TRP3_CaughtULookin.code-workspace
