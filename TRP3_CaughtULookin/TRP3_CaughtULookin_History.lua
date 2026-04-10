@@ -42,6 +42,9 @@ function addon:InitializeHistoryUI()
         return
     end
 
+    addon.historyFrame:SetFrameStrata("MEDIUM")
+    addon.historyFrame:SetFrameLevel(15)
+
     addon.historyFrame.scrollFrame = _G["CULookinHistoryScrollFrame"]
     addon.historyFrame.content = _G["CULookinHistoryContent"]
     addon.historyFrame.lines = {}
@@ -102,7 +105,11 @@ function addon:OpenHistoryWindow()
         addon:InitializeHistoryUI()
     end
     if addon.historyFrame then
+        if addon.frame then
+            addon.historyFrame:SetFrameLevel(addon.frame:GetFrameLevel() + 10)
+        end
         addon.historyFrame:Show()
+        addon.historyFrame:Raise()
         addon:UpdateHistoryDisplay()
     end
 end

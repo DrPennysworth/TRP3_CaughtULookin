@@ -76,9 +76,10 @@ function addon:CreateListRow(lineName, parent)
     fontString:SetNonSpaceWrap(false)
     fontString:SetJustifyH("LEFT")
     fontString:SetJustifyV("TOP")
+    fontString:SetShadowOffset(1, -1)
+    fontString:SetShadowColor(0, 0, 0, 1)
     line.fontString = fontString
 
-    addon:InitializeCopyDialog()
     line:EnableMouse(true)
     line:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     line:SetScript("OnClick", OnSharedRowClick)

@@ -11,6 +11,9 @@ local function StripTRP3ColorCodes(text)
 end
 
 function addon:MakeFullName(name)
+    if not name or name == "" then
+        return name
+    end
     if string.find(name, "-") then
         return name
     end
@@ -130,18 +133,6 @@ function addon:RefreshTRP3ForUnitID(unitID)
 end
 
 function addon:RefreshPendingTRP3Profiles()
-    if addon.pendingProfileOpen then
-        local pending = addon.pendingProfileOpen
-        if pending.unitID and TRP3_API and TRP3_API.register and TRP3_API.register.getUnitIDCurrentProfileSafe and TRP3_API.register.openPageByProfileID and TRP3_API.navigation and TRP3_API.navigation.openMainFrame then
-            local profile = TRP3_API.register.getUnitIDCurrentProfileSafe(pending.unitID)
-            if profile and profile.profileID then
-                TRP3_API.register.openPageByProfileID(profile.profileID)
-                TRP3_API.navigation.openMainFrame()
-                addon.pendingProfileOpen = nil
-            end
-        end
-    end
-
     if not addon.pendingTRP3Profiles then
         return
     end

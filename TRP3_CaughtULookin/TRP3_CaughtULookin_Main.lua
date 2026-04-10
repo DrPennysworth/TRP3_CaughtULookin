@@ -12,8 +12,26 @@ CULookinDB = CULookinDB or {
     minimap = { show = true, lock = false, minimapPos = 225 },
 }
 
-local function CreateMinimapSettingsProxy()
+local function EnsureMinimapDB()
+    CULookinDB = CULookinDB or {}
     CULookinDB.minimap = CULookinDB.minimap or { show = true, lock = false, minimapPos = 225 }
+end
+
+local function ToggleMainFrame()
+    if not addon.frame then
+        addon:InitializeUI()
+    end
+    if addon.frame then
+        if addon.frame:IsShown() then
+            addon.frame:Hide()
+        else
+            addon.frame:Show()
+        end
+    end
+end
+
+local function CreateMinimapSettingsProxy()
+    EnsureMinimapDB()
 
     local function Read(_, key)
         if key == "hide" then
@@ -41,7 +59,7 @@ local function CreateFallbackMinimapButton()
         return
     end
 
-    CULookinDB.minimap = CULookinDB.minimap or { show = true, lock = false, minimapPos = 225 }
+    EnsureMinimapDB()
 
     local button = CreateFrame("Button", "CULookinMinimapButton", Minimap)
     button:SetSize(32, 32)
@@ -62,22 +80,9 @@ local function CreateFallbackMinimapButton()
     icon:SetPoint("CENTER", 0, 0)
     icon:SetSize(18, 18)
 
-    local function ToggleFrame()
-        if not addon.frame then
-            addon:InitializeUI()
-        end
-        if addon.frame then
-            if addon.frame:IsShown() then
-                addon.frame:Hide()
-            else
-                addon.frame:Show()
-            end
-        end
-    end
-
     button:SetScript("OnClick", function(self, button)
         if button == "LeftButton" then
-            ToggleFrame()
+            ToggleMainFrame()
         elseif button == "RightButton" then
             addon:ToggleHistoryWindow()
         end
@@ -143,7 +148,7 @@ function addon:CreateMinimapButton()
         local LibDBIcon = LibStub:GetLibrary("LibDBIcon-1.0", true)
         local LibDBCompartment = LibStub:GetLibrary("LibDBCompartment-1.0", true)
         if LibDataBroker and LibDBIcon then
-            CULookinDB.minimap = CULookinDB.minimap or { show = true, lock = false, minimapPos = 225 }
+            EnsureMinimapDB()
 
             local objectName = "Total RP 3: Caught U Lookin"
             local object = LibDataBroker:NewDataObject(objectName, {
@@ -151,16 +156,7 @@ function addon:CreateMinimapButton()
                 icon = "Interface/Icons/INV_Misc_Map_01",
                 OnClick = function(_, button)
                     if button == "LeftButton" then
-                        if not addon.frame then
-                            addon:InitializeUI()
-                        end
-                        if addon.frame then
-                            if addon.frame:IsShown() then
-                                addon.frame:Hide()
-                            else
-                                addon.frame:Show()
-                            end
-                        end
+                        ToggleMainFrame()
                     elseif button == "RightButton" then
                         addon:ToggleHistoryWindow()
                     end
@@ -254,6 +250,9 @@ function addon:InitializeUI()
         return
     end
 
+    addon.frame:SetFrameStrata("MEDIUM")
+    addon.frame:SetFrameLevel(5)
+
     addon.frame.header = _G["CULookinHeader"]
     addon.frame.clearButton = _G["CULookinClearButton"]
     addon.frame.historyButton = _G["CULookinHistoryButton"]
@@ -270,25 +269,17 @@ function addon:InitializeUI()
         addon:InitializeCopyDialog()
     end
 
+    if addon.frame.historyButton then
+        addon.frame.historyButton:SetScript("OnClick", function()
+            addon:ToggleHistoryWindow()
+        end)
+    end
+
     if TRP3_API and TRP3_Addon and TRP3_API.RegisterCallback and TRP3_Addon.Events and TRP3_Addon.Events.REGISTER_DATA_UPDATED then
         TRP3_API.RegisterCallback(TRP3_Addon, TRP3_Addon.Events.REGISTER_DATA_UPDATED, function(_, unitID)
             if addon.RefreshTRP3ForUnitID then
                 addon:RefreshTRP3ForUnitID(unitID)
             end
-            if addon.pendingProfileOpen and addon.pendingProfileOpen.unitID == unitID then
-                local profile = TRP3_API.register.getUnitIDCurrentProfileSafe(unitID)
-                if profile and profile.profileID then
-                    TRP3_API.register.openPageByProfileID(profile.profileID)
-                    TRP3_API.navigation.openMainFrame()
-                    addon.pendingProfileOpen = nil
-                end
-            end
-        end)
-    end
-
-    if addon.frame.historyButton then
-        addon.frame.historyButton:SetScript("OnClick", function()
-            addon:OpenHistoryWindow()
         end)
     end
 
