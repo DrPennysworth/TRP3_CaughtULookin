@@ -1,11 +1,11 @@
 ## Interface:  120001,120005
 ## Title: Total RP 3: Caught U Lookin
-## Notes: Shows visible players currently targeting you and allows opening TRP3 profiles.
+## Notes: Very light weight addon to list anyone targeting you. The list letting you copy their real character name or opening their TRP3 profile.
 ## Author: Dr. Pennysworth
 ## Version: 1.0.0
 ## Group: totalRP3
 ## Dependencies: totalRP3
-## Icon: resources/INV_Misc_Eye_01.blp
+## Icon: resources/wow_whoslookin_icon_v2.dxt1.blp
 ## SavedVariables: CULookinDB
 TRP3_CaughtULookin_Main.xml
 TRP3_CaughtULookin_List.xml

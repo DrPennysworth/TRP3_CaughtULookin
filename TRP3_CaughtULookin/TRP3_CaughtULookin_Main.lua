@@ -71,7 +71,7 @@ function addon:CreateMinimapButton()
             local objectName = "Total RP 3: Caught U Lookin"
             local object = LibDataBroker:NewDataObject(objectName, {
                 type = "launcher",
-                icon = "Interface\\AddOns\\TRP3_CaughtULookin\\resources\\INV_Misc_Eye_01.blp",
+                icon = "Interface\\AddOns\\TRP3_CaughtULookin\\resources\\wow_whoslookin_icon_v2.dxt1.blp",
                 OnClick = function(_, button)
                     if button == "LeftButton" then
                         ToggleMainFrame()
