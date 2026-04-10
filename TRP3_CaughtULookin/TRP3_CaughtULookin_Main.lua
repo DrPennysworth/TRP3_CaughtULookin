@@ -60,7 +60,7 @@ function addon:CreateMinimapButton()
         return
     end
 
-    local ldbAvailable = type(LibStub) == "function"
+    local ldbAvailable = LibStub ~= nil
     if ldbAvailable then
         local LibDataBroker = LibStub:GetLibrary("LibDataBroker-1.1", true)
         local LibDBIcon = LibStub:GetLibrary("LibDBIcon-1.0", true)

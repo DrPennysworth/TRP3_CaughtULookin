@@ -43,7 +43,7 @@ function addon:InitializeCopyDialog()
         end)
     end
 
-    copyEditBox:SetScript("OnKeyDown", function(self, key)
+    copyEditBox:HookScript("OnKeyUp", function(self, key)
         if key == "C" and IsControlKeyDown() then
             copyDialog:Hide()
         end
