@@ -1,5 +1,6 @@
 local ADDON_NAME, addon = ...
 local frame
+local minimapButton
 local targetingPlayers = {}
 local namePool = {}
 local TRP3_NamePlatesUtil = TRP3_NamePlatesUtil
@@ -7,16 +8,246 @@ local TRP3_NamePlatesUtil = TRP3_NamePlatesUtil
 CULookinDB = CULookinDB or {
     pos = { x = 300, y = -250 },
     size = { width = 260, height = 250 },
+    minimap = { show = true, lock = false, minimapPos = 225 },
 }
 
-local function GetDisplayName(unit, realName)
-    if TRP3_API and TRP3_API.chat and TRP3_API.chat.getFullnameForUnitUsingChatMethod and TRP3_API.utils and TRP3_API.utils.str and TRP3_API.utils.str.getUnitID then
-        local trpName = TRP3_API.chat.getFullnameForUnitUsingChatMethod(TRP3_API.utils.str.getUnitID(unit))
-        if trpName and trpName ~= "" then
-            return trpName
+local function CreateMinimapSettingsProxy()
+    CULookinDB.minimap = CULookinDB.minimap or { show = true, lock = false, minimapPos = 225 }
+
+    local function Read(_, key)
+        if key == "hide" then
+            return not CULookinDB.minimap.show
+        elseif key == "lock" then
+            return CULookinDB.minimap.lock
+        elseif key == "minimapPos" then
+            return CULookinDB.minimap.minimapPos
         end
     end
-    return realName
+
+    local function Write(_, key, value)
+        if key == "lock" then
+            CULookinDB.minimap.lock = value
+        elseif key == "minimapPos" then
+            CULookinDB.minimap.minimapPos = value
+        end
+    end
+
+    return setmetatable({}, { __index = Read, __newindex = Write })
+end
+
+local function CreateFallbackMinimapButton()
+    if minimapButton or not Minimap then
+        return
+    end
+
+    CULookinDB.minimap = CULookinDB.minimap or { show = true, lock = false, minimapPos = 225 }
+
+    local button = CreateFrame("Button", "CULookinMinimapButton", Minimap)
+    button:SetSize(32, 32)
+    button:SetFrameStrata("MEDIUM")
+    button:SetClampedToScreen(true)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:RegisterForDrag("LeftButton")
+    button:SetMovable(true)
+
+    button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+
+    local bg = button:CreateTexture(nil, "BACKGROUND")
+    bg:SetTexture("Interface\\MINIMAP\\MiniMap-TrackingBorder")
+    bg:SetAllPoints()
+
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetTexture("Interface\\Icons\\INV_Misc_Map_01")
+    icon:SetPoint("CENTER", 0, 0)
+    icon:SetSize(18, 18)
+
+    local function ToggleFrame()
+        if not frame then
+            addon:InitializeUI()
+        end
+        if frame then
+            if frame:IsShown() then
+                frame:Hide()
+            else
+                frame:Show()
+            end
+        end
+    end
+
+    button:SetScript("OnClick", function(self, button)
+        if button == "LeftButton" then
+            ToggleFrame()
+        elseif button == "RightButton" then
+            CULookinDB.minimap.show = not CULookinDB.minimap.show
+            self:SetShown(CULookinDB.minimap.show)
+        end
+    end)
+
+    button:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Caught U Lookin")
+        GameTooltip:AddLine("Left-click: toggle window", 1, 1, 1)
+        GameTooltip:AddLine("Right-click: hide button", 1, 1, 1)
+        GameTooltip:AddLine("Drag: reposition", 0.6, 0.6, 0.6)
+        GameTooltip:Show()
+    end)
+
+    button:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
+    button:SetScript("OnDragStart", function(self)
+        if not CULookinDB.minimap.lock then
+            self:StartMoving()
+        end
+    end)
+
+    button:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local x, y = self:GetCenter()
+        local mx, my = Minimap:GetCenter()
+        if x and y and mx and my then
+            local angle = math.deg(math.atan2(y - my, x - mx))
+            if angle < 0 then
+                angle = angle + 360
+            end
+            CULookinDB.minimap.minimapPos = angle
+            local rad = math.rad(angle)
+            local radius = 80
+            self:ClearAllPoints()
+            self:SetPoint("CENTER", Minimap, "CENTER", math.cos(rad) * radius, math.sin(rad) * radius)
+        end
+    end)
+
+    local function PositionButton()
+        local angle = CULookinDB.minimap.minimapPos or 225
+        local rad = math.rad(angle)
+        local radius = 80
+        button:ClearAllPoints()
+        button:SetPoint("CENTER", Minimap, "CENTER", math.cos(rad) * radius, math.sin(rad) * radius)
+    end
+
+    PositionButton()
+    button:SetShown(CULookinDB.minimap.show)
+    minimapButton = button
+end
+
+function addon:CreateMinimapButton()
+    if minimapButton then
+        return
+    end
+
+    local ldbAvailable = type(LibStub) == "function"
+    if ldbAvailable then
+        local LibDataBroker = LibStub:GetLibrary("LibDataBroker-1.1", true)
+        local LibDBIcon = LibStub:GetLibrary("LibDBIcon-1.0", true)
+        local LibDBCompartment = LibStub:GetLibrary("LibDBCompartment-1.0", true)
+        if LibDataBroker and LibDBIcon then
+            CULookinDB.minimap = CULookinDB.minimap or { show = true, lock = false, minimapPos = 225 }
+
+            local objectName = "Total RP 3: Caught U Lookin"
+            local object = LibDataBroker:NewDataObject(objectName, {
+                type = "launcher",
+                icon = "Interface\\Icons\\INV_Misc_Map_01",
+                OnClick = function(_, button)
+                    if button == "LeftButton" then
+                        if not frame then
+                            addon:InitializeUI()
+                        end
+                        if frame then
+                            if frame:IsShown() then
+                                frame:Hide()
+                            else
+                                frame:Show()
+                            end
+                        end
+                    elseif button == "RightButton" then
+                        CULookinDB.minimap.show = not CULookinDB.minimap.show
+                        if CULookinDB.minimap.show then
+                            LibDBIcon:Refresh(objectName)
+                        else
+                            LibDBIcon:Hide(objectName)
+                        end
+                    end
+                end,
+                OnTooltipShow = function(tooltip)
+                    tooltip:AddLine("Caught U Lookin")
+                    tooltip:AddLine("Left-click: toggle window", 1, 1, 1)
+                    tooltip:AddLine("Right-click: hide button", 1, 1, 1)
+                end,
+            })
+
+            minimapButton = object
+            LibDBIcon:Register(objectName, object, CreateMinimapSettingsProxy())
+            if LibDBCompartment then
+                LibDBCompartment:Register(objectName, object)
+            end
+
+            if CULookinDB.minimap.show then
+                LibDBIcon:Refresh(objectName)
+            else
+                LibDBIcon:Hide(objectName)
+            end
+            return
+        end
+    end
+
+    CreateFallbackMinimapButton()
+end
+
+local function GetTRP3IconMarkup(unit)
+    if TRP3_API and TRP3_API.utils and TRP3_API.utils.str and TRP3_API.utils.str.getUnitID and TRP3_API.utils.str.icon and TRP3_API.register and TRP3_API.register.getUnitIDCurrentProfileSafe then
+        local unitID = TRP3_API.utils.str.getUnitID(unit)
+        if unitID then
+            local profile = TRP3_API.register.getUnitIDCurrentProfileSafe(unitID)
+            if profile and profile.characteristics then
+                local icon = profile.characteristics.IC
+                if not icon and TRP3_InterfaceIcons and TRP3_InterfaceIcons.ProfileDefault then
+                    icon = TRP3_InterfaceIcons.ProfileDefault
+                end
+                if icon then
+                    return TRP3_API.utils.str.icon(icon, 15) .. " "
+                end
+            end
+        end
+    end
+    return ""
+end
+
+local function GetTRP3Name(unit, realName)
+    if TRP3_API and TRP3_API.utils and TRP3_API.utils.str and TRP3_API.utils.str.getUnitID then
+        local unitID = TRP3_API.utils.str.getUnitID(unit)
+        if unitID then
+            if TRP3_API.chat and TRP3_API.chat.getFullnameForUnitUsingChatMethod then
+                local trpName = TRP3_API.chat.getFullnameForUnitUsingChatMethod(unitID)
+                if trpName and trpName ~= "" then
+                    return trpName
+                end
+            end
+            if TRP3_API.register and TRP3_API.register.getUnitRPName then
+                local name = TRP3_API.register.getUnitRPName(unit)
+                if name and name ~= "" then
+                    return name
+                end
+            end
+            if TRP3_API.register and TRP3_API.register.getUnitIDCurrentProfileSafe and TRP3_API.register.getCompleteName then
+                local profile = TRP3_API.register.getUnitIDCurrentProfileSafe(unitID)
+                if profile and profile.characteristics then
+                    local completeName = TRP3_API.register.getCompleteName(profile.characteristics, profile.profileName or realName, true)
+                    if completeName and completeName ~= "" then
+                        if profile.characteristics.CH and TRP3_API.CreateColorFromHexString then
+                            local colorFunction = TRP3_API.CreateColorFromHexString(profile.characteristics.CH)
+                            if colorFunction then
+                                return colorFunction(completeName)
+                            end
+                        end
+                        return completeName
+                    end
+                end
+            end
+        end
+    end
+    return nil
 end
 
 local function MakeFullName(name)
@@ -30,10 +261,23 @@ local function MakeFullName(name)
     return name
 end
 
-local function OpenTRP3Profile(realName)
+local function OpenTRP3Profile(unit, realName)
     if not realName or realName == "" then
         return
     end
+
+    if TRP3_API and TRP3_API.utils and TRP3_API.utils.str and TRP3_API.utils.str.getUnitID and TRP3_API.register and TRP3_API.register.getUnitIDCurrentProfileSafe and TRP3_API.register.openPageByProfileID and TRP3_API.navigation and TRP3_API.navigation.openMainFrame then
+        local unitID = TRP3_API.utils.str.getUnitID(unit)
+        if unitID then
+            local profile = TRP3_API.register.getUnitIDCurrentProfileSafe(unitID)
+            if profile and profile.profileID then
+                TRP3_API.register.openPageByProfileID(profile.profileID)
+                TRP3_API.navigation.openMainFrame()
+                return
+            end
+        end
+    end
+
     local fullName = MakeFullName(realName)
     local command = "/trp3 open " .. fullName
     ChatFrame_OpenChat(command)
@@ -90,13 +334,19 @@ local function UpdateDisplay()
         line:SetSize(frame:GetWidth() - 16, 16)
         line.unit = data.unit
         line.realName = data.realName
-        if data.unit and UnitExists(data.unit) and not InCombatLockdown() then
-            line:SetAttribute("unit", data.unit)
-        end
         line.fontString:SetTextColor(1, 1, 1)
 
+        local visibleName
+        if data.trpName and data.trpName ~= "" and data.trpName ~= data.realName then
+            visibleName = (data.iconMarkup or "") .. data.trpName .. " (" .. data.realName .. ")"
+        else
+            visibleName = (data.iconMarkup or "") .. data.realName
+        end
+
         local status = data.isTargeting and "" or " |cff808080(recent)|r"
-        line.fontString:SetText(data.displayName .. status)
+        line.fontString:SetText(visibleName .. status)
+
+        line.hasTRP3 = data.trpName and data.trpName ~= ""
 
         line:ClearAllPoints()
         if i == 1 then
@@ -112,7 +362,7 @@ local function UpdateDisplay()
     frame:SetHeight(neededHeight)
 end
 
-local function AddOrUpdatePlayer(realName, displayName, unit)
+local function AddOrUpdatePlayer(realName, trpName, iconMarkup, unit)
     if not realName or realName == "" then
         return
     end
@@ -123,7 +373,8 @@ local function AddOrUpdatePlayer(realName, displayName, unit)
     local _, class = GetPlayerInfoByGUID(guid)
     targetingPlayers[realName] = {
         realName = realName,
-        displayName = displayName,
+        trpName = trpName,
+        iconMarkup = iconMarkup,
         unit = unit,
         isTargeting = true,
         lastSeen = GetTime(),
@@ -142,9 +393,10 @@ local function CheckAllNameplates()
             local unit = (TRP3_NamePlatesUtil and TRP3_NamePlatesUtil.GetNameplateUnit and TRP3_NamePlatesUtil.GetNameplateUnit(npFrame)) or npFrame.namePlateUnitToken or npFrame.unitToken
             if unit and UnitIsPlayer(unit) and not UnitIsUnit(unit, "player") and UnitIsUnit(unit .. "target", "player") then
                 local realName = UnitName(unit)
-                local displayName = GetDisplayName(unit, realName)
+                local trpName = GetTRP3Name(unit, realName)
+                local iconMarkup = GetTRP3IconMarkup(unit)
                 currentlyTargeting[realName] = true
-                AddOrUpdatePlayer(realName, displayName, unit)
+                AddOrUpdatePlayer(realName, trpName, iconMarkup, unit)
             end
         end
     end
@@ -198,19 +450,37 @@ function addon:InitializeUI()
             local line = CreateFrame("Button", nil, frame, "SecureActionButtonTemplate")
             line:SetHighlightTexture("Interface/QuestFrame/UI-QuestTitleHighlight", "ADD")
             line:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-            line:SetAttribute("type1", "target")
-            line:SetAttribute("type2", "" )
+            line:SetAttribute("type1", "none")
+            line:SetAttribute("type2", "none")
             line:SetAttribute("unit", nil)
+            line:SetAttribute("macrotext1", "")
+            line:SetAttribute("macrotext2", "")
             local fs = line:CreateFontString(nil, "ARTWORK", "GameFontNormal")
             fs:SetAllPoints(true)
             fs:SetJustifyH("LEFT")
             line.fontString = fs
             line:SetScript("OnClick", function(self, button)
-                if button == "RightButton" then
+                if button == "LeftButton" then
+                    if self.hasTRP3 and self.realName then
+                        OpenTRP3Profile(self.unit, self.realName)
+                    else
+                        print("|cff00ff00Caught U Lookin:|r TRP3 profile not available. Only you can see this player.")
+                    end
+                elseif button == "RightButton" then
                     if self.realName then
-                        OpenTRP3Profile(self.realName)
+                        ChatFrame_OpenChat(self.realName)
                     end
                 end
+            end)
+            line:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText("Caught U Lookin")
+                GameTooltip:AddLine("Left-click: open TRP3 profile", 1, 1, 1)
+                GameTooltip:AddLine("Right-click: insert real name in chat", 1, 1, 1)
+                GameTooltip:Show()
+            end)
+            line:SetScript("OnLeave", function()
+                GameTooltip:Hide()
             end)
             frame.lines[i] = line
         end
@@ -262,6 +532,7 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
         addon:InitializeUI()
+        addon:CreateMinimapButton()
         if frame then
             frame:Show()
         end

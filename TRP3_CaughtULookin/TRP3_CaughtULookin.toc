@@ -1,9 +1,10 @@
 ## Interface:  120001,120005
-## Title: TRP3 Caught U Lookin
+## Title: Total RP 3: Caught U Lookin
 ## Notes: Shows visible players currently targeting you and allows opening TRP3 profiles.
 ## Author: Dr. Pennysworth
 ## Version: 1.0.0
-## OptionalDeps: totalRP3
+## Group: totalRP3
+## Dependencies: totalRP3
 ## SavedVariables: CULookinDB
 TRP3_CaughtULookin.xml
 TRP3_CaughtULookin.lua
