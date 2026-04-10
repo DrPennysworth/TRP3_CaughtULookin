@@ -71,14 +71,14 @@ local function CreateFallbackMinimapButton()
 
     button:SetHighlightTexture("Interface/Minimap/UI-Minimap-ZoomButton-Highlight")
 
-    local bg = button:CreateTexture(nil, "BACKGROUND")
-    bg:SetTexture("Interface/MINIMAP/MiniMap-TrackingBorder")
-    bg:SetAllPoints()
+    -- local bg = button:CreateTexture(nil, "BACKGROUND")
+    -- bg:SetTexture("Interface/MINIMAP/MiniMap-TrackingBorder")
+    -- bg:SetAllPoints()
 
     local icon = button:CreateTexture(nil, "ARTWORK")
-    icon:SetTexture("Interface/Icons/INV_Misc_Map_01")
+    icon:SetTexture("Interface/AddOns/TRP3_CaughtULookin/resources/INV_Misc_Eye_01.blp")
     icon:SetPoint("CENTER", 0, 0)
-    icon:SetSize(18, 18)
+    icon:SetSize(32, 32)
 
     button:SetScript("OnClick", function(self, button)
         if button == "LeftButton" then
@@ -91,8 +91,8 @@ local function CreateFallbackMinimapButton()
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Caught U Lookin")
-        GameTooltip:AddLine("Left-click: toggle window", 1, 1, 1)
-        GameTooltip:AddLine("Right-click: hide button", 1, 1, 1)
+        GameTooltip:AddLine("Left-click: toggle |cff00ff00Target Window|r", 1, 1, 1)
+        GameTooltip:AddLine("Right-click: toggle |cff00ff00History Window|r", 1, 1, 1)
         GameTooltip:AddLine("Drag: reposition", 0.6, 0.6, 0.6)
         GameTooltip:Show()
     end)
@@ -153,7 +153,7 @@ function addon:CreateMinimapButton()
             local objectName = "Total RP 3: Caught U Lookin"
             local object = LibDataBroker:NewDataObject(objectName, {
                 type = "launcher",
-                icon = "Interface/Icons/INV_Misc_Map_01",
+                icon = "Interface\\AddOns\\TRP3_CaughtULookin\\resources\\INV_Misc_Eye_01.blp",
                 OnClick = function(_, button)
                     if button == "LeftButton" then
                         ToggleMainFrame()
@@ -163,8 +163,8 @@ function addon:CreateMinimapButton()
                 end,
                 OnTooltipShow = function(tooltip)
                     tooltip:AddLine("Caught U Lookin")
-                    tooltip:AddLine("Left-click: toggle window", 1, 1, 1)
-                    tooltip:AddLine("Right-click: toggle history", 1, 1, 1)
+                    tooltip:AddLine("Left-click: toggle |cff00ff00Target Window|r", 1, 1, 1)
+                    tooltip:AddLine("Right-click: toggle |cff00ff00History Window|r", 1, 1, 1)
                 end,
             })
 

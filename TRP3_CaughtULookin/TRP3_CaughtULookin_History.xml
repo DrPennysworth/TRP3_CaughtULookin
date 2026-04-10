@@ -14,6 +14,15 @@
             <Layer level="ARTWORK">
                 <FontString name="CULookinCopyDialogTitle" inherits="GameFontNormal" setAllPoints="true" justifyH="CENTER" justifyV="TOP" text="Copy Character Name"/>
             </Layer>
+            <Layer level="ARTWORK">
+                <FontString name="CULookinCopyDialogHint" inherits="GameFontHighlightSmall" justifyH="CENTER" justifyV="TOP" text="Use Ctrl+C to copy">
+                    <Size x="0" y="16"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="CULookinCopyDialog" x="10" y="-60"/>
+                        <Anchor point="TOPRIGHT" relativeTo="CULookinCopyDialog" x="-10" y="-60"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
         </Layers>
         <Frames>
             <EditBox name="CULookinCopyDialogEditBox" inherits="InputBoxTemplate" autoFocus="true">

@@ -5,6 +5,7 @@
 ## Version: 1.0.0
 ## Group: totalRP3
 ## Dependencies: totalRP3
+## Icon: resources/INV_Misc_Eye_01.blp
 ## SavedVariables: CULookinDB
 TRP3_CaughtULookin_Main.xml
 TRP3_CaughtULookin_List.xml
