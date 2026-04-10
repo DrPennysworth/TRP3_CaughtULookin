@@ -54,88 +54,6 @@ local function CreateMinimapSettingsProxy()
     return setmetatable({}, { __index = Read, __newindex = Write })
 end
 
-local function CreateFallbackMinimapButton()
-    if addon.minimapButton or not Minimap then
-        return
-    end
-
-    EnsureMinimapDB()
-
-    local button = CreateFrame("Button", "CULookinMinimapButton", Minimap)
-    button:SetSize(32, 32)
-    button:SetFrameStrata("MEDIUM")
-    button:SetClampedToScreen(true)
-    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    button:RegisterForDrag("LeftButton")
-    button:SetMovable(true)
-
-    button:SetHighlightTexture("Interface/Minimap/UI-Minimap-ZoomButton-Highlight")
-
-    -- local bg = button:CreateTexture(nil, "BACKGROUND")
-    -- bg:SetTexture("Interface/MINIMAP/MiniMap-TrackingBorder")
-    -- bg:SetAllPoints()
-
-    local icon = button:CreateTexture(nil, "ARTWORK")
-    icon:SetTexture("Interface/AddOns/TRP3_CaughtULookin/resources/INV_Misc_Eye_01.blp")
-    icon:SetPoint("CENTER", 0, 0)
-    icon:SetSize(32, 32)
-
-    button:SetScript("OnClick", function(self, button)
-        if button == "LeftButton" then
-            ToggleMainFrame()
-        elseif button == "RightButton" then
-            addon:ToggleHistoryWindow()
-        end
-    end)
-
-    button:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Caught U Lookin")
-        GameTooltip:AddLine("Left-click: toggle |cff00ff00Target Window|r", 1, 1, 1)
-        GameTooltip:AddLine("Right-click: toggle |cff00ff00History Window|r", 1, 1, 1)
-        GameTooltip:AddLine("Drag: reposition", 0.6, 0.6, 0.6)
-        GameTooltip:Show()
-    end)
-
-    button:SetScript("OnLeave", function()
-        GameTooltip:Hide()
-    end)
-
-    button:SetScript("OnDragStart", function(self)
-        if not CULookinDB.minimap.lock then
-            self:StartMoving()
-        end
-    end)
-
-    button:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        local x, y = self:GetCenter()
-        local mx, my = Minimap:GetCenter()
-        if x and y and mx and my then
-            local angle = math.deg(math.atan2(y - my, x - mx))
-            if angle < 0 then
-                angle = angle + 360
-            end
-            CULookinDB.minimap.minimapPos = angle
-            local rad = math.rad(angle)
-            local radius = 80
-            self:ClearAllPoints()
-            self:SetPoint("CENTER", Minimap, "CENTER", math.cos(rad) * radius, math.sin(rad) * radius)
-        end
-    end)
-
-    local function PositionButton()
-        local angle = CULookinDB.minimap.minimapPos or 225
-        local rad = math.rad(angle)
-        local radius = 80
-        button:ClearAllPoints()
-        button:SetPoint("CENTER", Minimap, "CENTER", math.cos(rad) * radius, math.sin(rad) * radius)
-    end
-
-    PositionButton()
-    button:SetShown(CULookinDB.minimap.show)
-    addon.minimapButton = button
-end
 
 function addon:CreateMinimapButton()
     if addon.minimapButton then
@@ -182,8 +100,6 @@ function addon:CreateMinimapButton()
             return
         end
     end
-
-    CreateFallbackMinimapButton()
 end
 
 function addon:OpenTRP3Profile(unit, realName)
