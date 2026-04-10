@@ -1,5 +1,5 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ../FrameXML/UI.xsd">
-    <Frame name="CULookinFrame" parent="UIParent" frameStrata="MEDIUM" hidden="true" inherits="BackdropTemplate">
+    <Frame name="CULookinFrame" parent="UIParent" frameStrata="MEDIUM" hidden="true" inherits="TRP3_SmallerStandardParchmentFrame,BackdropTemplate">
         <Size x="260" y="250"/>
         <Anchors>
             <Anchor point="TOPLEFT" relativeTo="UIParent" relativePoint="TOPLEFT" x="300" y="-250"/>
@@ -20,6 +20,10 @@
                 CULookinDB.pos.y = self:GetTop() - UIParent:GetTop()
             </OnMouseUp>
         </Scripts>
+        <ResizeBounds>
+            <minResize x="220" y="140"/>
+            <maxResize x="600" y="600"/>
+        </ResizeBounds>
         <Frames>
             <Frame name="CULookinHeader" parent="CULookinFrame" enableMouse="true">
                 <Size x="0" y="28"/>
@@ -43,12 +47,54 @@
                     </Layer>
                 </Layers>
             </Frame>
+            <ScrollFrame name="CULookinScrollFrame" parent="CULookinFrame">
+                <Size x="0" y="0"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="CULookinHeader" relativePoint="BOTTOMLEFT" x="8" y="-8"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinFrame" x="-8" y="32"/>
+                </Anchors>
+                <ScrollChild>
+                    <Frame name="$parentChild">
+                        <Size x="0" y="1"/>
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeTo="CULookinScrollFrame" x="0" y="0"/>
+                        </Anchors>
+                    </Frame>
+                </ScrollChild>
+            </ScrollFrame>
             <Button name="CULookinClearButton" parent="CULookinFrame" inherits="UIPanelButtonTemplate" text="Clear Recent">
                 <Size x="90" y="22"/>
                 <Anchors>
                     <Anchor point="BOTTOMLEFT" relativeTo="CULookinFrame" x="5" y="5"/>
                 </Anchors>
             </Button>
+            <Button name="CULookinHistoryButton" parent="CULookinFrame" inherits="UIPanelButtonTemplate" text="History">
+                <Size x="90" y="22"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinFrame" x="-5" y="5"/>
+                </Anchors>
+            </Button>
+            <Frame name="CULookinResizeGrip" parent="CULookinFrame" enableMouse="true">
+                <Size x="16" y="16"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinFrame" x="0" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnMouseDown>
+                        self:GetParent():StartSizing()
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:GetParent():StopMovingOrSizing()
+                        CULookinDB.size.width = self:GetParent():GetWidth()
+                        CULookinDB.size.height = self:GetParent():GetHeight()
+                    </OnMouseUp>
+                </Scripts>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <Texture name="$parentIcon" file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Up" setAllPoints="true"/>
+                    </Layer>
+                </Layers>
+            </Frame>
         </Frames>
     </Frame>
 </Ui>

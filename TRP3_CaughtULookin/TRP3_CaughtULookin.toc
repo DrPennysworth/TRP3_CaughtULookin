@@ -6,5 +6,10 @@
 ## Group: totalRP3
 ## Dependencies: totalRP3
 ## SavedVariables: CULookinDB
-TRP3_CaughtULookin.xml
-TRP3_CaughtULookin.lua
+TRP3_CaughtULookin_Main.xml
+TRP3_CaughtULookin_List.xml
+TRP3_CaughtULookin_History.xml
+TRP3_CaughtULookin_Main.lua
+TRP3_CaughtULookin_Row.lua
+TRP3_CaughtULookin_List.lua
+TRP3_CaughtULookin_History.lua

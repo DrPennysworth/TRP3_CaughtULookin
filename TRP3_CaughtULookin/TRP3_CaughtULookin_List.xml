@@ -1,0 +1,13 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ../FrameXML/UI.xsd">
+    <Button name="TRP3_CaughtULookinListRowTemplate" virtual="true">
+        <Size x="1" y="16"/>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString name="$parentText" inherits="GameFontNormal" setAllPoints="true" justifyH="LEFT" justifyV="MIDDLE" text=""/>
+            </Layer>
+            <Layer level="HIGHLIGHT">
+                <Texture name="$parentHighlight" file="Interface/QuestFrame/UI-QuestTitleHighlight" setAllPoints="true" alpha="0.3"/>
+            </Layer>
+        </Layers>
+    </Button>
+</Ui>

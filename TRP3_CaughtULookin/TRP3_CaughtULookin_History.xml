@@ -1,0 +1,131 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ../FrameXML/UI.xsd">
+    <Frame name="CULookinCopyDialog" parent="UIParent" frameStrata="DIALOG" hidden="true" inherits="TRP3_SmallerStandardParchmentFrame,BackdropTemplate">
+        <Size x="320" y="100"/>
+        <Anchors>
+            <Anchor point="CENTER" relativeTo="UIParent" relativePoint="CENTER" x="0" y="0"/>
+        </Anchors>
+        <Scripts>
+            <OnLoad>
+                self:EnableMouse(true)
+                self:SetClampedToScreen(true)
+            </OnLoad>
+        </Scripts>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString name="CULookinCopyDialogTitle" inherits="GameFontNormal" setAllPoints="true" justifyH="CENTER" justifyV="TOP" text="Copy Character Name"/>
+            </Layer>
+        </Layers>
+        <Frames>
+            <EditBox name="CULookinCopyDialogEditBox" inherits="InputBoxTemplate" autoFocus="true">
+                <Size x="0" y="24"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="CULookinCopyDialog" x="10" y="-34"/>
+                    <Anchor point="TOPRIGHT" relativeTo="CULookinCopyDialog" x="-10" y="-34"/>
+                </Anchors>
+                <Scripts>
+                    <OnEscapePressed>
+                        self:GetParent():Hide()
+                    </OnEscapePressed>
+                </Scripts>
+            </EditBox>
+            <Button name="CULookinCopyDialogClose" inherits="UIPanelButtonTemplate" text="Close">
+                <Size x="80" y="22"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinCopyDialog" x="-10" y="10"/>
+                </Anchors>
+            </Button>
+        </Frames>
+    </Frame>
+    <Frame name="CULookinHistoryFrame" parent="UIParent" frameStrata="MEDIUM" hidden="true" inherits="TRP3_SmallerStandardParchmentFrame,BackdropTemplate">
+        <Size x="360" y="380"/>
+        <Anchors>
+            <Anchor point="CENTER" relativeTo="UIParent" relativePoint="CENTER" x="0" y="0"/>
+        </Anchors>
+        <Scripts>
+            <OnLoad>
+                self:EnableMouse(true)
+                self:SetMovable(true)
+                self:SetResizable(true)
+                self:SetClampedToScreen(true)
+            </OnLoad>
+            <OnMouseDown>
+                self:StartMoving()
+            </OnMouseDown>
+            <OnMouseUp>
+                self:StopMovingOrSizing()
+            </OnMouseUp>
+        </Scripts>
+        <ResizeBounds>
+            <minResize x="260" y="220"/>
+            <maxResize x="800" y="700"/>
+        </ResizeBounds>
+        <Frames>
+            <Frame name="CULookinHistoryHeader" parent="CULookinHistoryFrame" enableMouse="true">
+                <Size x="0" y="28"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="CULookinHistoryFrame" x="0" y="0"/>
+                    <Anchor point="TOPRIGHT" relativeTo="CULookinHistoryFrame" x="0" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnMouseDown>
+                        self:GetParent():StartMoving()
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:GetParent():StopMovingOrSizing()
+                    </OnMouseUp>
+                </Scripts>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString name="CULookinHistoryTitle" inherits="GameFontNormal" setAllPoints="true" justifyH="CENTER" justifyV="MIDDLE" text="Target History"/>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <ScrollFrame name="CULookinHistoryScrollFrame" parent="CULookinHistoryFrame">
+                <Size x="0" y="0"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="CULookinHistoryHeader" relativePoint="BOTTOMLEFT" x="8" y="-8"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinHistoryFrame" x="-8" y="38"/>
+                </Anchors>
+                <ScrollChild>
+                    <Frame name="CULookinHistoryContent">
+                        <Size x="0" y="1"/>
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeTo="CULookinHistoryScrollFrame" x="0" y="0"/>
+                        </Anchors>
+                    </Frame>
+                </ScrollChild>
+            </ScrollFrame>
+            <Button name="CULookinHistoryClearButton" parent="CULookinHistoryFrame" inherits="UIPanelButtonTemplate" text="Clear History">
+                <Size x="100" y="22"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" relativeTo="CULookinHistoryFrame" x="0" y="10"/>
+                </Anchors>
+            </Button>
+            <Button name="CULookinHistoryCloseButton" parent="CULookinHistoryFrame" inherits="UIPanelButtonTemplate" text="Close">
+                <Size x="60" y="22"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinHistoryFrame" x="-21" y="10"/>
+                </Anchors>
+            </Button>
+            <Frame name="CULookinHistoryResizeGrip" parent="CULookinHistoryFrame" enableMouse="true">
+                <Size x="16" y="16"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinHistoryFrame" x="0" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnMouseDown>
+                        self:GetParent():StartSizing()
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:GetParent():StopMovingOrSizing()
+                    </OnMouseUp>
+                </Scripts>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <Texture name="$parentIcon" file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Up" setAllPoints="true"/>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Frames>
+    </Frame>
+</Ui>
