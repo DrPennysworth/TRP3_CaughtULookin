@@ -17,7 +17,26 @@ local function EnsureMinimapDB()
     CULookinDB.minimap = CULookinDB.minimap or { show = true, lock = false, minimapPos = 225 }
 end
 
-local function ToggleMainFrame()
+local function EnsureUI()
+    if not addon.frame then
+        addon:InitializeUI()
+    end
+end
+
+local function ShowMainWindow()
+    EnsureUI()
+    if addon.frame then
+        addon.frame:Show()
+    end
+end
+
+local function HideMainWindow()
+    if addon.frame then
+        addon.frame:Hide()
+    end
+end
+
+local function ToggleMainWindow()
     if not addon.frame then
         addon:InitializeUI()
     end
@@ -27,6 +46,21 @@ local function ToggleMainFrame()
         else
             addon.frame:Show()
         end
+    end
+end
+
+local function HideHistoryWindow()
+    if addon.historyFrame then
+        addon.historyFrame:Hide()
+    end
+end
+
+local function ToggleAllWindows()
+    if (addon.frame and addon.frame:IsShown()) or (addon.historyFrame and addon.historyFrame:IsShown()) then
+        HideMainWindow()
+        HideHistoryWindow()
+    else
+        ShowMainWindow()
     end
 end
 
@@ -74,7 +108,7 @@ function addon:CreateMinimapButton()
                 icon = "Interface\\AddOns\\TRP3_CaughtULookin\\resources\\wow_whoslookin_icon_v2.dxt1.blp",
                 OnClick = function(_, button)
                     if button == "LeftButton" then
-                        ToggleMainFrame()
+                        ToggleMainWindow()
                     elseif button == "RightButton" then
                         addon:ToggleHistoryWindow()
                     end
@@ -261,35 +295,60 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     end
 end)
 
-SLASH_CULOOKIN1 = "/culookin"
-SLASH_CULOOKIN2 = "/culook"
-SlashCmdList["CULOOKIN"] = function(msg)
-    msg = msg and msg:lower() or ""
-    if msg == "history" then
-        addon:OpenHistoryWindow()
-    elseif msg == "hide" then
-        if addon.frame then
-            addon.frame:Hide()
-        end
-    elseif msg == "show" then
-        if addon.frame then
-            addon.frame:Show()
-        end
-    elseif msg == "reset" then
-        CULookinDB = nil
-        ReloadUI()
-    else
-        if not addon.frame then
-            addon:InitializeUI()
-        end
-        if addon.frame then
-            if addon.frame:IsShown() then
-                addon.frame:Hide()
-            else
-                addon.frame:Show()
+addon.SlashCommands.Register("/culookin", {"/culookin", "/culook"}, {
+    all = {
+        desc = "toggle all addon windows",
+        func = ToggleAllWindows,
+    },
+    toggle = {
+        desc = "toggle all addon windows",
+        func = ToggleAllWindows,
+    },
+    main = {
+        desc = "toggle the main target window",
+        func = ToggleMainWindow,
+    },
+    history = {
+        desc = "toggle the history window",
+        func = function()
+            addon:ToggleHistoryWindow()
+        end,
+    },
+    resetHistory = {
+        desc = "clear saved history entries",
+        func = function()
+            addon.history = {}
+            CULookinDB.history = addon.history
+            if addon.historyFrame then
+                addon:UpdateHistoryDisplay()
             end
-        end
-    end
-end
+            print(ADDON_NAME .. ": history cleared.")
+        end,
+    },
+    show = {
+        desc = "show a specific window",
+        main = {
+            desc = "show the main window",
+            func = ShowMainWindow,
+        },
+        history = {
+            desc = "show the history window",
+            func = function()
+                addon:OpenHistoryWindow()
+            end,
+        },
+    },
+    hide = {
+        desc = "hide a specific window",
+        main = {
+            desc = "hide the main window",
+            func = HideMainWindow,
+        },
+        history = {
+            desc = "hide the history window",
+            func = HideHistoryWindow,
+        },
+    },
+})
 
-print(ADDON_NAME .. " loaded. Use /culookin to open the window. Friendly nameplates must be enabled.")
+print(ADDON_NAME .. " loaded. Use /culookin help for commands. Friendly nameplates must be enabled.")

@@ -11,6 +11,7 @@
 TRP3_CaughtULookin_Main.xml
 TRP3_CaughtULookin_List.xml
 TRP3_CaughtULookin_History.xml
+TRP3_CaughtULookin_SlashCommands.lua
 TRP3_CaughtULookin_Main.lua
 TRP3_CaughtULookin_Row.lua
 TRP3_CaughtULookin_List.lua
