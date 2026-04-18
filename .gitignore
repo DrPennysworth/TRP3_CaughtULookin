@@ -22,8 +22,7 @@ Desktop.ini
 # Build artifacts / compiled output
 *.luac
 
-# GitHub stuff
-.github/
+
 
 # Ignore any personal secrets or secrets management files
 *.env

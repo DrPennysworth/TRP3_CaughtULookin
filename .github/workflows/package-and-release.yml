@@ -1,0 +1,49 @@
+name: Package and publish TRP3_CaughtULookin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_number:
+        description: 'Release version number (example: 1.0.0)'
+        required: true
+        default: '1.0.0'
+      release_body:
+        description: 'Release notes'
+        required: false
+        default: 'Packaged TRP3_CaughtULookin addon release.'
+      prerelease:
+        description: 'Mark this release as prerelease'
+        required: false
+        default: 'false'
+
+jobs:
+  package-and-release:
+    name: Package and publish addon
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create addon package zip
+        run: |
+          rm -f TRP3_CaughtULookin-v${{ github.event.inputs.version_number }}.zip
+          zip -r TRP3_CaughtULookin-v${{ github.event.inputs.version_number }}.zip TRP3_CaughtULookin
+
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.version_number }}
+          release_name: TRP3_CaughtULookin v${{ github.event.inputs.version_number }}
+          body: ${{ github.event.inputs.release_body }}
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease }}
+
+      - name: Upload addon asset to release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: TRP3_CaughtULookin-v${{ github.event.inputs.version_number }}.zip
+          asset_name: TRP3_CaughtULookin-v${{ github.event.inputs.version_number }}.zip
+          asset_content_type: application/zip
