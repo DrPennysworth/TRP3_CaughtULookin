@@ -22,10 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create addon package zip
         run: |
@@ -33,10 +35,11 @@ jobs:
           zip -r TRP3_CaughtULookin-v${{ github.event.inputs.version_number }}.zip TRP3_CaughtULookin
 
       - name: Create GitHub release and upload package
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ github.event.inputs.version_number }}
-          release_name: TRP3_CaughtULookin v${{ github.event.inputs.version_number }}
+          name: TRP3_CaughtULookin v${{ github.event.inputs.version_number }}
           body: ${{ github.event.inputs.release_body }}
           draft: false
           prerelease: ${{ github.event.inputs.prerelease }}
