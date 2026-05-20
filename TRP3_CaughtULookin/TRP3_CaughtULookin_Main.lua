@@ -144,14 +144,15 @@ local function RegisterAceOptions()
         return
     end
 
+    local addonIcon = "|TInterface\\AddOns\\TRP3_CaughtULookin\\resources\\wow_whoslookin_icon_v2.dxt1.blp:16:16|t"
     local options = {
-        name = "Caught U Lookin",
+        name = "Caught U Lookin...now with settings!",
         type = "group",
         args = {
             header = {
                 order = 1,
                 type = "description",
-                name = "Configure Caught U Lookin settings below.",
+                name = "",
                 fontSize = "medium",
             },
             targetTransparency = {
@@ -236,7 +237,7 @@ local function RegisterAceOptions()
     }
 
     AceConfig:RegisterOptionsTable("CaughtULookin", options)
-    AceConfigDialog:AddToBlizOptions("CaughtULookin", "Caught U Lookin")
+    AceConfigDialog:AddToBlizOptions("CaughtULookin"," Caught U Lookin " .. addonIcon)
 end
 
 function addon:CreateMinimapButton()
