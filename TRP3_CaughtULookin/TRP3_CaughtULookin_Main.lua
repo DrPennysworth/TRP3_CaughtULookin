@@ -88,6 +88,156 @@ local function CreateMinimapSettingsProxy()
     return setmetatable({}, { __index = Read, __newindex = Write })
 end
 
+function addon:EnsureSettings()
+    CULookinDB = CULookinDB or {}
+    CULookinDB.settings = CULookinDB.settings or {}
+    CULookinDB.settings.targetWindow = CULookinDB.settings.targetWindow or {}
+    CULookinDB.settings.historyWindow = CULookinDB.settings.historyWindow or {}
+    CULookinDB.settings.targetWindow.transparency = CULookinDB.settings.targetWindow.transparency or 1.0
+    CULookinDB.settings.targetWindow.rowHeight = CULookinDB.settings.targetWindow.rowHeight or 24
+    CULookinDB.settings.historyWindow.transparency = CULookinDB.settings.historyWindow.transparency or 1.0
+    CULookinDB.settings.historyWindow.rowHeight = CULookinDB.settings.historyWindow.rowHeight or 34
+end
+
+function addon:ApplyTransparency()
+    addon:EnsureSettings()
+    if addon.frame then
+        addon.frame:SetAlpha(CULookinDB.settings.targetWindow.transparency)
+    end
+    if addon.historyFrame then
+        addon.historyFrame:SetAlpha(CULookinDB.settings.historyWindow.transparency)
+    end
+end
+
+function addon:GetTargetRowHeight()
+    addon:EnsureSettings()
+    return CULookinDB.settings.targetWindow.rowHeight or 24
+end
+
+function addon:GetHistoryRowHeight()
+    addon:EnsureSettings()
+    return CULookinDB.settings.historyWindow.rowHeight or 34
+end
+
+local function OpenOptions()
+    if LibStub then
+        local AceConfigDialog = LibStub("AceConfigDialog-3.0", true)
+        if AceConfigDialog then
+            AceConfigDialog:Open("CaughtULookin")
+            return
+        end
+    end
+    if InterfaceOptionsFrame_OpenToCategory then
+        InterfaceOptionsFrame_OpenToCategory("Caught U Lookin")
+        return
+    end
+    print(ADDON_NAME .. ": AceConfig-3.0 is required to open the settings panel.")
+end
+
+local function RegisterAceOptions()
+    if not LibStub then
+        return
+    end
+    local AceConfig = LibStub("AceConfig-3.0", true)
+    local AceConfigDialog = LibStub("AceConfigDialog-3.0", true)
+    if not AceConfig or not AceConfigDialog then
+        return
+    end
+
+    local options = {
+        name = "Caught U Lookin",
+        type = "group",
+        args = {
+            header = {
+                order = 1,
+                type = "description",
+                name = "Configure Caught U Lookin settings below.",
+                fontSize = "medium",
+            },
+            targetTransparency = {
+                order = 2,
+                type = "range",
+                name = "Target Window Transparency",
+                desc = "Set the transparency for the main target window.",
+                min = 0.2,
+                max = 1.0,
+                step = 0.05,
+                isPercent = true,
+                get = function()
+                    addon:EnsureSettings()
+                    return CULookinDB.settings.targetWindow.transparency
+                end,
+                set = function(_, value)
+                    addon:EnsureSettings()
+                    CULookinDB.settings.targetWindow.transparency = value
+                    addon:ApplyTransparency()
+                end,
+            },
+            historyTransparency = {
+                order = 3,
+                type = "range",
+                name = "History Window Transparency",
+                desc = "Set the transparency for the history window.",
+                min = 0.2,
+                max = 1.0,
+                step = 0.05,
+                isPercent = true,
+                get = function()
+                    addon:EnsureSettings()
+                    return CULookinDB.settings.historyWindow.transparency
+                end,
+                set = function(_, value)
+                    addon:EnsureSettings()
+                    CULookinDB.settings.historyWindow.transparency = value
+                    addon:ApplyTransparency()
+                end,
+            },
+            targetRowHeight = {
+                order = 4,
+                type = "range",
+                name = "Target Row Height",
+                desc = "Set the minimum row height for the main target list.",
+                min = 18,
+                max = 60,
+                step = 1,
+                get = function()
+                    addon:EnsureSettings()
+                    return CULookinDB.settings.targetWindow.rowHeight
+                end,
+                set = function(_, value)
+                    addon:EnsureSettings()
+                    CULookinDB.settings.targetWindow.rowHeight = value
+                    if addon.UpdateDisplay then
+                        addon:UpdateDisplay()
+                    end
+                end,
+            },
+            historyRowHeight = {
+                order = 5,
+                type = "range",
+                name = "History Row Height",
+                desc = "Set the minimum row height for history list rows.",
+                min = 18,
+                max = 60,
+                step = 1,
+                get = function()
+                    addon:EnsureSettings()
+                    return CULookinDB.settings.historyWindow.rowHeight
+                end,
+                set = function(_, value)
+                    addon:EnsureSettings()
+                    CULookinDB.settings.historyWindow.rowHeight = value
+                    if addon.UpdateHistoryDisplay then
+                        addon:UpdateHistoryDisplay()
+                    end
+                end,
+            },
+        },
+    }
+
+    AceConfig:RegisterOptionsTable("CaughtULookin", options)
+    AceConfigDialog:AddToBlizOptions("CaughtULookin", "Caught U Lookin")
+end
 
 function addon:CreateMinimapButton()
     if addon.minimapButton then
@@ -192,6 +342,7 @@ function addon:InitializeUI()
         return
     end
 
+    addon:EnsureSettings()
     addon.history = CULookinDB.history or {}
     CULookinDB.history = addon.history
 
@@ -224,6 +375,8 @@ function addon:InitializeUI()
             addon:ToggleHistoryWindow()
         end)
     end
+
+    addon:ApplyTransparency()
 
     if TRP3_API and TRP3_Addon and TRP3_API.RegisterCallback and TRP3_Addon.Events and TRP3_Addon.Events.REGISTER_DATA_UPDATED then
         TRP3_API.RegisterCallback(TRP3_Addon, TRP3_Addon.Events.REGISTER_DATA_UPDATED, function(_, unitID)
@@ -260,6 +413,7 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
         addon:InitializeUI()
+        RegisterAceOptions()
         addon:CreateMinimapButton()
         if addon.frame then
             addon.frame:Show()
@@ -313,6 +467,10 @@ addon.SlashCommands.Register("/culookin", {"/culookin", "/culook"}, {
         func = function()
             addon:ToggleHistoryWindow()
         end,
+    },
+    options = {
+        desc = "open the addon options panel",
+        func = OpenOptions,
     },
     resetHistory = {
         desc = "clear saved history entries",

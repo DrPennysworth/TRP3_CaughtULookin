@@ -7,7 +7,7 @@
 ## Dependencies: totalRP3
 ## RequiredDeps: totalRP3_Extended
 ## Icon: resources/wow_whoslookin_icon_v2.dxt1.blp
-## SavedVariablesPerCharacter: CULookinDB
+## SavedVariables: CULookinDB
 TRP3_CaughtULookin_Main.xml
 TRP3_CaughtULookin_List.xml
 TRP3_CaughtULookin_History.xml

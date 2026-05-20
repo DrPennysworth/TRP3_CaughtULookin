@@ -47,18 +47,33 @@ function addon:GetTRP3Profile(unitOrUnitID)
     return nil, nil
 end
 
-function addon:GetTRP3IconMarkup(unitOrUnitID)
+function addon:GetTRP3IconID(unitOrUnitID)
     local profile = addon:GetTRP3Profile(unitOrUnitID)
     if profile and profile.characteristics then
         local icon = profile.characteristics.IC
         if not icon and TRP3_InterfaceIcons and TRP3_InterfaceIcons.ProfileDefault then
             icon = TRP3_InterfaceIcons.ProfileDefault
         end
-        if icon and TRP3_API and TRP3_API.utils and TRP3_API.utils.str and TRP3_API.utils.str.icon then
-            return TRP3_API.utils.str.icon(icon, 15) .. " "
-        end
+        return icon
     end
-    return ""
+    return nil
+end
+
+function addon:GetTRP3IconMarkup(iconID, iconSize)
+    if not iconID or not TRP3_API or not TRP3_API.utils or not TRP3_API.utils.str or not TRP3_API.utils.str.icon then
+        return ""
+    end
+    iconSize = iconSize or 15
+    return TRP3_API.utils.str.icon(iconID, iconSize) .. " "
+end
+
+function addon:NormalizeIconMarkup(iconMarkup, iconSize)
+    if not iconMarkup or iconMarkup == "" then
+        return ""
+    end
+    iconSize = iconSize or 15
+    local normalized = iconMarkup:gsub("|T([^:]+):%d+:%d+|t", "|T%1:" .. iconSize .. ":" .. iconSize .. "|t")
+    return normalized
 end
 
 local function HexToRGB(hex)
@@ -96,11 +111,11 @@ function addon:RefreshTRP3ForUnitID(unitID)
             return
         end
         local newTRPName, newPending = addon:GetTRP3Name(unitID, data.realName)
-        local newIconMarkup = addon:GetTRP3IconMarkup(unitID)
+        local newIconID = addon:GetTRP3IconID(unitID)
         local newTRPColor = addon:GetTRP3Color(unitID)
-        if data.trpName ~= newTRPName or data.iconMarkup ~= newIconMarkup or data.trpColor ~= newTRPColor or data.pendingTRP3 ~= newPending then
+        if data.trpName ~= newTRPName or data.iconID ~= newIconID or data.trpColor ~= newTRPColor or data.pendingTRP3 ~= newPending then
             data.trpName = newTRPName
-            data.iconMarkup = newIconMarkup
+            data.iconID = newIconID
             data.trpColor = newTRPColor
             data.pendingTRP3 = newPending
             updated = true
@@ -281,7 +296,7 @@ function addon:UpdateDisplay()
 
     local content = frame.scrollChild or frame
     local top = 4
-    local minRowHeight = 18
+    local minRowHeight = addon.GetTargetRowHeight and addon:GetTargetRowHeight() or 24
     local totalHeight = 8
     local contentWidth = 0
     local scrollHeight = 0
@@ -308,19 +323,6 @@ function addon:UpdateDisplay()
         line.unitID = data.unitID or (data.unit and addon:GetTRP3UnitID(data.unit))
         line.realName = data.realName
 
-        local visibleName = data.iconMarkup or ""
-        if data.trpName and data.trpName ~= "" then
-            visibleName = visibleName .. data.trpName
-            if not visibleName:find("|r$") then
-                visibleName = visibleName .. "|r"
-            end
-            if StripTRP3ColorCodes(data.trpName) ~= data.realName then
-                visibleName = visibleName .. " (" .. data.realName .. ")"
-            end
-        else
-            visibleName = visibleName .. data.realName
-        end
-
         local status
         if data.pendingTRP3 then
             status = " |cff808080(loading)|r"
@@ -329,19 +331,47 @@ function addon:UpdateDisplay()
         else
             status = ""
         end
-        local text = visibleName .. status
 
-        local rowHeight = minRowHeight
+        local text
         if line.fontString then
             if data.trpColor then
                 line.fontString:SetTextColor(data.trpColor.r, data.trpColor.g, data.trpColor.b)
             else
                 line.fontString:SetTextColor(1, 1, 1)
             end
+
             line.fontString:SetWidth(lineWidth)
+            local fontSize = math.max(12, minRowHeight - 8)
+            line.fontString:SetFont(STANDARD_TEXT_FONT, fontSize)
+
+            local iconSize = math.max(18, minRowHeight - 6)
+            local iconMarkup
+            if data.iconID then
+                iconMarkup = addon:GetTRP3IconMarkup(data.iconID, iconSize)
+            else
+                iconMarkup = addon:NormalizeIconMarkup(data.iconMarkup, iconSize)
+            end
+            text = iconMarkup
+            if data.trpName and data.trpName ~= "" then
+                text = text .. data.trpName
+                if not text:find("|r$") then
+                    text = text .. "|r"
+                end
+                if StripTRP3ColorCodes(data.trpName) ~= data.realName then
+                    text = text .. " (" .. data.realName .. ")"
+                end
+            else
+                text = text .. data.realName
+            end
+            text = text .. status
+
             line.fontString:SetText(text)
-            rowHeight = math.max(minRowHeight, line.fontString:GetStringHeight())
+            local rowHeight = math.max(minRowHeight, line.fontString:GetStringHeight(), iconSize + 6)
             line.fontString:SetHeight(rowHeight)
+            line:SetHeight(rowHeight)
+        else
+            text = data.realName
+            line:SetHeight(minRowHeight)
         end
 
         line:SetHeight(rowHeight)
@@ -368,7 +398,7 @@ function addon:UpdateDisplay()
 
 end
 
-function addon:AddOrUpdatePlayer(realName, trpName, iconMarkup, unit, pendingTRP3)
+function addon:AddOrUpdatePlayer(realName, trpName, iconID, unit, pendingTRP3)
     if not realName or realName == "" then
         return
     end
@@ -380,7 +410,7 @@ function addon:AddOrUpdatePlayer(realName, trpName, iconMarkup, unit, pendingTRP
     addon.targetingPlayers[realName] = {
         realName = realName,
         trpName = trpName,
-        iconMarkup = iconMarkup,
+        iconID = iconID,
         trpColor = addon:GetTRP3Color(unit),
         unit = unit,
         unitID = addon:GetTRP3UnitID(unit),
@@ -403,12 +433,12 @@ function addon:CheckAllNameplates()
             if unit and UnitIsPlayer(unit) and not UnitIsUnit(unit, "player") and UnitIsUnit(unit .. "target", "player") then
                 local realName = UnitName(unit)
                 local trpName, pendingTRP3 = addon:GetTRP3Name(unit, realName)
-                local iconMarkup = addon:GetTRP3IconMarkup(unit)
+                local iconID = addon:GetTRP3IconID(unit)
                 currentlyTargeting[realName] = true
                 if addon.RecordHistoryEvent and (not addon.targetingPlayers[realName] or not addon.targetingPlayers[realName].isTargeting) then
-                    addon:RecordHistoryEvent(realName, trpName, iconMarkup, true, addon:GetTRP3Color(unit), addon:GetTRP3UnitID(unit), pendingTRP3)
+                    addon:RecordHistoryEvent(realName, trpName, iconID, true, addon:GetTRP3Color(unit), addon:GetTRP3UnitID(unit), pendingTRP3)
                 end
-                addon:AddOrUpdatePlayer(realName, trpName, iconMarkup, unit, pendingTRP3)
+                addon:AddOrUpdatePlayer(realName, trpName, iconID, unit, pendingTRP3)
             end
         end
     end
@@ -416,7 +446,7 @@ function addon:CheckAllNameplates()
     for name, data in pairs(addon.targetingPlayers) do
         if data.isTargeting and not currentlyTargeting[name] then
             if addon.RecordHistoryEvent then
-                addon:RecordHistoryEvent(name, data.trpName, data.iconMarkup, false, data.trpColor, data.unitID)
+                addon:RecordHistoryEvent(name, data.trpName, data.iconID, false, data.trpColor, data.unitID)
             end
             data.isTargeting = false
             data.unit = nil

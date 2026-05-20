@@ -38,3 +38,6 @@ package-lock.json
 npm-debug.log
 
 TRP3_CaughtULookin.code-workspace
+
+.instructions.md
+libs/

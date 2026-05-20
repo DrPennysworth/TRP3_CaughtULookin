@@ -1,6 +1,14 @@
 local ADDON_NAME, addon = ...
 
 local function OnSharedRowClick(self, button)
+    if self.isHeader then
+        if button == "LeftButton" and self.group then
+            self.group.collapsed = not self.group.collapsed
+            addon:UpdateHistoryDisplay()
+        end
+        return
+    end
+
     if button == "LeftButton" then
         local target = self.unitID or self.unit or self.realName
         if target and self.realName and self.realName ~= "" then
@@ -16,6 +24,9 @@ local function OnSharedRowClick(self, button)
 end
 
 local function OnSharedRowEnter(self)
+    if self.isHeader then
+        return
+    end
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     GameTooltip:SetText("Left click to open TRP3 profile\nRight click to copy the real name")
     GameTooltip:Show()

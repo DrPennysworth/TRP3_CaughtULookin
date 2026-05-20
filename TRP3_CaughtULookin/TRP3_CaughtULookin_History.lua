@@ -1,5 +1,11 @@
 local ADDON_NAME, addon = ...
 
+function addon:GetCharacterKey()
+    local name = UnitName("player") or "Unknown"
+    local realm = GetRealmName() or ""
+    return name .. "-" .. realm
+end
+
 function addon:FormatHistoryTime(timestamp)
     if not timestamp then
         return "--:--"
@@ -7,12 +13,18 @@ function addon:FormatHistoryTime(timestamp)
     return date("%I:%M:%S %p", timestamp)
 end
 
-function addon:GetHistoryLineText(entry)
+function addon:GetHistoryLineText(entry, iconSize)
     local visibleName
+    local iconMarkup = ""
+    if entry.iconID then
+        iconMarkup = addon:GetTRP3IconMarkup(entry.iconID, iconSize)
+    elseif entry.iconMarkup then
+        iconMarkup = addon:NormalizeIconMarkup(entry.iconMarkup, iconSize)
+    end
     if entry.trpName and entry.trpName ~= "" and entry.trpName ~= entry.realName then
-        visibleName = (entry.iconMarkup or "") .. entry.trpName .. " (" .. entry.realName .. ")"
+        visibleName = iconMarkup .. entry.trpName .. " (" .. entry.realName .. ")"
     else
-        visibleName = (entry.iconMarkup or "") .. entry.realName
+        visibleName = iconMarkup .. entry.realName
     end
     if entry.pendingTRP3 then
         visibleName = visibleName .. " |cff808080(loading)|r"
@@ -42,8 +54,10 @@ function addon:InitializeHistoryUI()
         return
     end
 
+    addon:EnsureSettings()
     addon.historyFrame:SetFrameStrata("MEDIUM")
     addon.historyFrame:SetFrameLevel(15)
+    addon:ApplyTransparency()
 
     addon.historyFrame.scrollFrame = _G["CULookinHistoryScrollFrame"]
     addon.historyFrame.content = _G["CULookinHistoryContent"]
@@ -82,7 +96,7 @@ function addon:InitializeHistoryUI()
     addon:InitializeCopyDialog()
 
     if addon.historyFrame.content then
-        for i = 1, 20 do
+        for i = 1, 80 do
             if not addon.historyFrame.lines[i] then
                 local line = addon:CreateListRow("CULookinHistoryRow" .. i, addon.historyFrame.content)
                 addon.historyFrame.lines[i] = line
@@ -127,50 +141,104 @@ function addon:UpdateHistoryDisplay()
         return
     end
 
-    local historyPool = {}
-    for _, entry in pairs(addon.history or {}) do
-        table.insert(historyPool, entry)
+    local visibleItems = {}
+    local characterGroups = {}
+    for charKey, group in pairs(addon.history or {}) do
+        table.insert(characterGroups, { charKey = charKey, group = group })
     end
-
-    table.sort(historyPool, function(a, b)
-        return (a.lastSeen or 0) > (b.lastSeen or 0)
+    table.sort(characterGroups, function(a, b)
+        return (a.group.lastSeen or 0) > (b.group.lastSeen or 0)
     end)
 
+    for _, groupInfo in ipairs(characterGroups) do
+        table.insert(visibleItems, { type = "header", charKey = groupInfo.charKey, group = groupInfo.group })
+        if not groupInfo.group.collapsed then
+            local entries = {}
+            for _, entry in pairs(groupInfo.group.entries or {}) do
+                table.insert(entries, entry)
+            end
+            table.sort(entries, function(a, b)
+                return (a.lastSeen or 0) > (b.lastSeen or 0)
+            end)
+            for _, entry in ipairs(entries) do
+                table.insert(visibleItems, { type = "entry", entry = entry })
+            end
+        end
+    end
+
     if addon.historyFrame.content then
-        local maxLines = #addon.historyFrame.lines
         for _, line in ipairs(addon.historyFrame.lines) do
             line:Hide()
+            line.isHeader = nil
+            line.group = nil
+            line.realName = nil
+            line.unitID = nil
+            line.hasTRP3 = nil
         end
 
         local contentWidth = addon.historyFrame.scrollFrame and addon.historyFrame.scrollFrame:GetWidth() or math.max(addon.historyFrame.content:GetWidth() - 16, 100)
         local lineWidth = math.max(contentWidth - 16, 100)
-        local minRowHeight = 34
+        local minRowHeight = addon.GetHistoryRowHeight and addon:GetHistoryRowHeight() or 34
         local totalHeight = 8
-        for i, entry in ipairs(historyPool) do
+
+        for i, item in ipairs(visibleItems) do
             local line = addon.historyFrame.lines[i]
             if not line then
                 break
             end
-            line.realName = entry.realName
-            line.unit = nil
-            line.unitID = entry.unitID
-            line.hasTRP3 = entry.trpName and entry.trpName ~= ""
-            local text = addon:GetHistoryLineText(entry)
-            local rowHeight = minRowHeight
+
+            local text
+            local iconSize = 18
+            if item.type == "header" then
+                line.isHeader = true
+                line.group = item.group
+                if line.fontString then
+                    line.fontString:SetFontObject("GameFontNormalLarge")
+                end
+                local count = 0
+                for _ in pairs(item.group.entries or {}) do
+                    count = count + 1
+                end
+                local marker = item.group.collapsed and "[+]" or "[-]"
+                text = string.format("%s %s (%d entries)", marker, item.charKey, count)
+                if line.fontString then
+                    line.fontString:SetTextColor(1, 0.82, 0.2)
+                end
+            else
+                line.isHeader = false
+                line.group = nil
+                local entry = item.entry
+                line.realName = entry.realName
+                line.unit = nil
+                line.unitID = entry.unitID
+                line.hasTRP3 = entry.trpName and entry.trpName ~= ""
+                if line.fontString then
+                    line.fontString:SetFontObject("GameFontHighlightSmall")
+                    local fontSize = math.max(12, minRowHeight - 8)
+                    line.fontString:SetFont(STANDARD_TEXT_FONT, fontSize)
+                end
+                local iconSize = math.max(18, minRowHeight - 6)
+                text = "    " .. addon:GetHistoryLineText(entry, iconSize)
+                if line.fontString then
+                    line.fontString:SetWidth(lineWidth)
+                    if entry.trpColor then
+                        line.fontString:SetTextColor(entry.trpColor.r, entry.trpColor.g, entry.trpColor.b)
+                    else
+                        line.fontString:SetTextColor(1, 1, 1)
+                    end
+                end
+            end
+
             if line.fontString then
                 line.fontString:SetWidth(lineWidth)
                 line.fontString:SetText(text)
-                rowHeight = math.max(minRowHeight, line.fontString:GetStringHeight())
+                local rowHeight = math.max(minRowHeight, line.fontString:GetStringHeight(), iconSize + 6)
                 line.fontString:SetHeight(rowHeight)
+                line:SetHeight(rowHeight)
+            else
+                line:SetHeight(minRowHeight)
             end
-            line:SetHeight(rowHeight)
-            if line.fontString then
-                if entry.trpColor then
-                    line.fontString:SetTextColor(entry.trpColor.r, entry.trpColor.g, entry.trpColor.b)
-                else
-                    line.fontString:SetTextColor(1, 1, 1)
-                end
-            end
+
             if i == 1 then
                 line:SetPoint("TOPLEFT", addon.historyFrame.content, "TOPLEFT", 8, -4)
                 line:SetPoint("TOPRIGHT", addon.historyFrame.content, "TOPRIGHT", -8, -4)
@@ -178,8 +246,9 @@ function addon:UpdateHistoryDisplay()
                 line:SetPoint("TOPLEFT", addon.historyFrame.lines[i - 1], "BOTTOMLEFT", 0, -2)
                 line:SetPoint("TOPRIGHT", addon.historyFrame.lines[i - 1], "BOTTOMRIGHT", 0, -2)
             end
+
             line:Show()
-            totalHeight = totalHeight + rowHeight + 2
+            totalHeight = totalHeight + line:GetHeight() + 2
         end
 
         if addon.historyFrame.scrollFrame and addon.historyFrame.content then
@@ -189,21 +258,33 @@ function addon:UpdateHistoryDisplay()
     end
 end
 
-function addon:RecordHistoryEvent(realName, trpName, iconMarkup, started, trpColor, unitID, pendingTRP3)
+function addon:RecordHistoryEvent(realName, trpName, iconID, started, trpColor, unitID, pendingTRP3)
     if not realName or realName == "" then
         return
     end
     addon.history = addon.history or CULookinDB.history or {}
     CULookinDB.history = addon.history
 
+    local characterKey = addon:GetCharacterKey()
+    local characterHistory = addon.history[characterKey]
+    if not characterHistory then
+        characterHistory = {
+            entries = {},
+            collapsed = false,
+            lastSeen = time(),
+        }
+        addon.history[characterKey] = characterHistory
+    end
+    characterHistory.lastSeen = time()
+
     local fullName = addon:MakeFullName(realName)
-    local entry = addon.history[fullName]
+    local entry = characterHistory.entries[fullName]
     if not entry then
         entry = {
             fullName = fullName,
             realName = realName,
             trpName = trpName or realName,
-            iconMarkup = iconMarkup or "",
+            iconID = iconID,
             trpColor = trpColor,
             unitID = unitID,
             pendingTRP3 = pendingTRP3 and true or false,
@@ -211,11 +292,11 @@ function addon:RecordHistoryEvent(realName, trpName, iconMarkup, started, trpCol
             active = false,
             lastSeen = time(),
         }
-        addon.history[fullName] = entry
+        characterHistory.entries[fullName] = entry
     else
         entry.realName = realName
         entry.trpName = trpName or entry.trpName or realName
-        entry.iconMarkup = iconMarkup or entry.iconMarkup or ""
+        entry.iconID = iconID or entry.iconID
         entry.trpColor = trpColor or entry.trpColor
         entry.unitID = entry.unitID or unitID
         entry.pendingTRP3 = pendingTRP3 or entry.pendingTRP3

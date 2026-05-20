@@ -107,13 +107,13 @@
             <Button name="CULookinHistoryClearButton" parent="CULookinHistoryFrame" inherits="UIPanelButtonTemplate" text="Clear History">
                 <Size x="100" y="22"/>
                 <Anchors>
-                    <Anchor point="BOTTOMLEFT" relativeTo="CULookinHistoryFrame" x="0" y="10"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="CULookinHistoryFrame" x="8" y="10"/>
                 </Anchors>
             </Button>
             <Button name="CULookinHistoryCloseButton" parent="CULookinHistoryFrame" inherits="UIPanelButtonTemplate" text="Close">
                 <Size x="60" y="22"/>
                 <Anchors>
-                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinHistoryFrame" x="-21" y="10"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="CULookinHistoryFrame" x="-8" y="10"/>
                 </Anchors>
             </Button>
             <Frame name="CULookinHistoryResizeGrip" parent="CULookinHistoryFrame" enableMouse="true">
