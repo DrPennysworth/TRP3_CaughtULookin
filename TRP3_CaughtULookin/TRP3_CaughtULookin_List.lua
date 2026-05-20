@@ -333,6 +333,7 @@ function addon:UpdateDisplay()
         end
 
         local text
+        local rowHeight = minRowHeight
         if line.fontString then
             if data.trpColor then
                 line.fontString:SetTextColor(data.trpColor.r, data.trpColor.g, data.trpColor.b)
@@ -366,7 +367,7 @@ function addon:UpdateDisplay()
             text = text .. status
 
             line.fontString:SetText(text)
-            local rowHeight = math.max(minRowHeight, line.fontString:GetStringHeight(), iconSize + 6)
+            rowHeight = math.max(minRowHeight, line.fontString:GetStringHeight(), iconSize + 6)
             line.fontString:SetHeight(rowHeight)
             line:SetHeight(rowHeight)
         else
