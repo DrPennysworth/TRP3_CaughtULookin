@@ -1,4 +1,4 @@
-## Interface:  120001,120005,120007
+## Interface:  120001,120005,120007,120100
 ## Title: Total RP 3: Caught U Lookin
 ## Notes: Very light weight addon to list anyone targeting you. The list letting you copy their real character name or opening their TRP3 profile.
 ## Author: Dr. Pennysworth
