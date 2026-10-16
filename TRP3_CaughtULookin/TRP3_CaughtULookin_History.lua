@@ -1,5 +1,7 @@
 local ADDON_NAME, addon = ...
 
+local HISTORY_REFRESH_INTERVAL = 1.5
+
 function addon:GetCharacterKey()
     local name = UnitName("player") or "Unknown"
     local realm = GetRealmName() or ""
@@ -8,9 +10,31 @@ end
 
 function addon:FormatHistoryTime(timestamp)
     if not timestamp then
-        return "--:--"
+        return "--/--/---- --:--"
     end
-    return date("%I:%M:%S %p", timestamp)
+    return date("%m/%d/%Y %I:%M:%S %p", timestamp)
+end
+
+function addon:FormatHistoryDuration(seconds)
+    seconds = math.max(0, math.floor(seconds or 0))
+
+    local hours = math.floor(seconds / 3600)
+    seconds = seconds % 3600
+    local minutes = math.floor(seconds / 60)
+    seconds = seconds % 60
+
+    local parts = {}
+    if hours > 0 then
+        parts[#parts + 1] = string.format("%d %s", hours, hours == 1 and "hour" or "hours")
+    end
+    if minutes > 0 then
+        parts[#parts + 1] = string.format("%d %s", minutes, minutes == 1 and "minute" or "minutes")
+    end
+    if seconds > 0 or #parts == 0 then
+        parts[#parts + 1] = string.format("%d %s", seconds, seconds == 1 and "second" or "seconds")
+    end
+
+    return table.concat(parts, ", ")
 end
 
 function addon:GetHistoryLineText(entry, iconSize)
@@ -30,18 +54,9 @@ function addon:GetHistoryLineText(entry, iconSize)
         visibleName = visibleName .. " |cff808080(loading)|r"
     end
 
-    local lastEvent = entry.events and entry.events[#entry.events]
-    if not lastEvent then
-        return visibleName .. " - no history"
-    end
-
-    local startText = addon:FormatHistoryTime(lastEvent.start)
-    if lastEvent.stop then
-        local stopText = addon:FormatHistoryTime(lastEvent.stop)
-        return string.format("%s - started %s, stopped %s", visibleName, startText, stopText)
-    end
-
-    return string.format("%s - started %s, still targeting", visibleName, startText)
+    local stopText = addon:FormatHistoryTime(entry.stop)
+    local durationText = addon:FormatHistoryDuration(entry.stop - (entry.start or entry.stop))
+    return string.format("%s - finished %s (%s)", visibleName, stopText, durationText)
 end
 
 function addon:InitializeHistoryUI()
@@ -107,6 +122,16 @@ function addon:InitializeHistoryUI()
     addon.historyFrame:SetScript("OnSizeChanged", function(self, width, height)
         addon:UpdateHistoryDisplay()
     end)
+
+    addon.historyFrame.historyRefreshElapsed = 0
+    addon.historyFrame:SetScript("OnUpdate", function(self, elapsed)
+        self.historyRefreshElapsed = self.historyRefreshElapsed + elapsed
+        if self.historyRefreshElapsed < HISTORY_REFRESH_INTERVAL then
+            return
+        end
+        self.historyRefreshElapsed = 0
+        addon:UpdateHistoryDisplay()
+    end)
 end
 
 function addon:OpenHistoryWindow()
@@ -114,6 +139,7 @@ function addon:OpenHistoryWindow()
         addon.history = CULookinDB.history or {}
         CULookinDB.history = addon.history
     end
+    addon:EnsureHistorySessionEntries()
 
     if not addon.historyFrame then
         addon:InitializeHistoryUI()
@@ -151,14 +177,19 @@ function addon:UpdateHistoryDisplay()
     end)
 
     for _, groupInfo in ipairs(characterGroups) do
-        table.insert(visibleItems, { type = "header", charKey = groupInfo.charKey, group = groupInfo.group })
-        if not groupInfo.group.collapsed then
-            local entries = {}
-            for _, entry in pairs(groupInfo.group.entries or {}) do
+        local entries = {}
+        for _, entry in pairs(groupInfo.group.entries or {}) do
+            if entry.stop then
                 table.insert(entries, entry)
             end
+        end
+
+        if #entries > 0 then
+            table.insert(visibleItems, { type = "header", charKey = groupInfo.charKey, group = groupInfo.group })
+        end
+        if #entries > 0 and not groupInfo.group.collapsed then
             table.sort(entries, function(a, b)
-                return (a.lastSeen or 0) > (b.lastSeen or 0)
+                return (a.stop or a.lastSeen or 0) > (b.stop or b.lastSeen or 0)
             end)
             for _, entry in ipairs(entries) do
                 table.insert(visibleItems, { type = "entry", entry = entry })
@@ -184,7 +215,8 @@ function addon:UpdateHistoryDisplay()
         for i, item in ipairs(visibleItems) do
             local line = addon.historyFrame.lines[i]
             if not line then
-                break
+                line = addon:CreateListRow("CULookinHistoryRow" .. i, addon.historyFrame.content)
+                addon.historyFrame.lines[i] = line
             end
 
             local text
@@ -196,8 +228,10 @@ function addon:UpdateHistoryDisplay()
                     line.fontString:SetFontObject("GameFontNormalLarge")
                 end
                 local count = 0
-                for _ in pairs(item.group.entries or {}) do
-                    count = count + 1
+                for _, entry in pairs(item.group.entries or {}) do
+                    if entry.stop then
+                        count = count + 1
+                    end
                 end
                 local marker = item.group.collapsed and "[+]" or "[-]"
                 text = string.format("%s %s (%d entries)", marker, item.charKey, count)
@@ -258,12 +292,78 @@ function addon:UpdateHistoryDisplay()
     end
 end
 
+local function GetNextEntryKey(characterHistory)
+    characterHistory.nextEntryID = (characterHistory.nextEntryID or 0) + 1
+    return "session-" .. characterHistory.nextEntryID
+end
+
+local function CopySessionEntry(entry, start, stop)
+    return {
+        fullName = entry.fullName,
+        realName = entry.realName,
+        trpName = entry.trpName,
+        iconID = entry.iconID,
+        iconMarkup = entry.iconMarkup,
+        trpColor = entry.trpColor,
+        unitID = entry.unitID,
+        pendingTRP3 = entry.pendingTRP3 and true or false,
+        start = start,
+        stop = stop,
+        active = not stop,
+        lastSeen = stop or start or entry.lastSeen,
+    }
+end
+
+function addon:EnsureHistorySessionEntries()
+    addon.history = addon.history or CULookinDB.history or {}
+    CULookinDB.history = addon.history
+
+    for _, characterHistory in pairs(addon.history) do
+        characterHistory.entries = characterHistory.entries or {}
+
+        local requiresMigration = false
+        local nextEntryID = characterHistory.nextEntryID or 0
+        for entryKey, entry in pairs(characterHistory.entries) do
+            if entry.events then
+                requiresMigration = true
+            end
+            local entryID = tonumber(tostring(entryKey):match("^session%-(%d+)$"))
+            if entryID and entryID > nextEntryID then
+                nextEntryID = entryID
+            end
+        end
+
+        if requiresMigration then
+            local convertedEntries = {}
+            characterHistory.nextEntryID = 0
+            for _, entry in pairs(characterHistory.entries) do
+                for _, event in ipairs(entry.events or {}) do
+                    local key = GetNextEntryKey(characterHistory)
+                    convertedEntries[key] = CopySessionEntry(entry, event.start, event.stop)
+                end
+            end
+            characterHistory.entries = convertedEntries
+        else
+            characterHistory.nextEntryID = nextEntryID
+        end
+    end
+end
+
+function addon:GetActiveHistoryEntry(characterHistory, fullName)
+    local activeEntries = addon.activeHistoryEntries and addon.activeHistoryEntries[addon:GetCharacterKey()]
+    local activeEntryKey = activeEntries and activeEntries[fullName]
+    local activeEntry = activeEntryKey and characterHistory.entries[activeEntryKey]
+    if activeEntry and not activeEntry.stop then
+        return activeEntry, activeEntryKey
+    end
+    return nil, nil
+end
+
 function addon:RecordHistoryEvent(realName, trpName, iconID, started, trpColor, unitID, pendingTRP3)
     if not realName or realName == "" then
         return
     end
-    addon.history = addon.history or CULookinDB.history or {}
-    CULookinDB.history = addon.history
+    addon:EnsureHistorySessionEntries()
 
     local characterKey = addon:GetCharacterKey()
     local characterHistory = addon.history[characterKey]
@@ -278,8 +378,12 @@ function addon:RecordHistoryEvent(realName, trpName, iconID, started, trpColor, 
     characterHistory.lastSeen = time()
 
     local fullName = addon:MakeFullName(realName)
-    local entry = characterHistory.entries[fullName]
-    if not entry then
+    addon.activeHistoryEntries = addon.activeHistoryEntries or {}
+    addon.activeHistoryEntries[characterKey] = addon.activeHistoryEntries[characterKey] or {}
+    local entry, entryKey = addon:GetActiveHistoryEntry(characterHistory, fullName)
+
+    if started and not entry then
+        entryKey = GetNextEntryKey(characterHistory)
         entry = {
             fullName = fullName,
             realName = realName,
@@ -288,12 +392,14 @@ function addon:RecordHistoryEvent(realName, trpName, iconID, started, trpColor, 
             trpColor = trpColor,
             unitID = unitID,
             pendingTRP3 = pendingTRP3 and true or false,
-            events = {},
-            active = false,
+            start = time(),
+            stop = nil,
+            active = true,
             lastSeen = time(),
         }
-        characterHistory.entries[fullName] = entry
-    else
+        characterHistory.entries[entryKey] = entry
+        addon.activeHistoryEntries[characterKey][fullName] = entryKey
+    elseif entry then
         entry.realName = realName
         entry.trpName = trpName or entry.trpName or realName
         entry.iconID = iconID or entry.iconID
@@ -303,19 +409,12 @@ function addon:RecordHistoryEvent(realName, trpName, iconID, started, trpColor, 
         entry.lastSeen = time()
     end
 
-    if started then
-        if not entry.active then
-            entry.active = true
-            entry.events[#entry.events + 1] = { start = time(), stop = nil }
-        end
-    else
-        if entry.active then
-            local lastEvent = entry.events[#entry.events]
-            if lastEvent and not lastEvent.stop then
-                lastEvent.stop = time()
-            end
-            entry.active = false
-        end
+    if not started and entry and not entry.stop then
+        entry.stop = time()
+        entry.active = false
+        entry.lastSeen = entry.stop
+        characterHistory.lastSeen = entry.stop
+        addon.activeHistoryEntries[characterKey][fullName] = nil
     end
 
     CULookinDB.history = addon.history

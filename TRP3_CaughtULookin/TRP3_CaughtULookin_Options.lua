@@ -40,7 +40,7 @@ local function ApplyWindowBackdrop(frame, windowKey)
     end
 
     local themeIndex = tonumber(CULookinDB.settings[windowKey].theme) or DEFAULT_THEME_INDEX
-    if TRP3_API and TRP3_API.ui and TRP3_API.ui.frame and TRP3_API.ui.frame.setBackdropToBackground then
+    if frame:GetBackdrop() and TRP3_API and TRP3_API.ui and TRP3_API.ui.frame and TRP3_API.ui.frame.setBackdropToBackground then
         TRP3_API.ui.frame.setBackdropToBackground(frame, themeIndex)
         return
     end

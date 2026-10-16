@@ -9,7 +9,7 @@ addon.TRP3_NamePlatesUtil = TRP3_NamePlatesUtil
 CULookinDB = CULookinDB or {
     pos = { x = 300, y = -250 },
     size = { width = 260, height = 250 },
-end
+}
 
 local function EnsureUI()
     if not addon.frame then
@@ -82,6 +82,9 @@ function addon:InitializeUI()
     addon:EnsureSettings()
     addon.history = CULookinDB.history or {}
     CULookinDB.history = addon.history
+    if addon.EnsureHistorySessionEntries then
+        addon:EnsureHistorySessionEntries()
+    end
 
     addon.frame = _G["CULookinFrame"]
     if not addon.frame then

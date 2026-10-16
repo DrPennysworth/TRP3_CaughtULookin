@@ -1,5 +1,8 @@
 local ADDON_NAME, addon = ...
 
+local TARGET_RETENTION_SECONDS = 300
+local DISPLAY_REFRESH_INTERVAL = 1
+
 addon.targetingPlayers = {}
 addon.namePool = {}
 
@@ -76,6 +79,21 @@ function addon:NormalizeIconMarkup(iconMarkup, iconSize)
     return normalized
 end
 
+function addon:FormatElapsedTime(seconds)
+    seconds = math.max(0, math.floor(seconds or 0))
+    if seconds < 60 then
+        return seconds .. "s"
+    end
+
+    local minutes = math.floor(seconds / 60)
+    if minutes < 60 then
+        return minutes .. "m " .. (seconds % 60) .. "s"
+    end
+
+    local hours = math.floor(minutes / 60)
+    return hours .. "h " .. (minutes % 60) .. "m"
+end
+
 local function HexToRGB(hex)
     if not hex then
         return nil
@@ -128,9 +146,11 @@ function addon:RefreshTRP3ForUnitID(unitID)
         end
     end
 
-    for _, entry in pairs(addon.history or {}) do
-        if entry.unitID == unitID then
-            updateEntry(entry)
+    for _, characterHistory in pairs(addon.history or {}) do
+        for _, entry in pairs(characterHistory.entries or {}) do
+            if entry.unitID == unitID then
+                updateEntry(entry)
+            end
         end
     end
 
@@ -258,6 +278,22 @@ function addon:InitializeListUI()
             addon:UpdateDisplay()
         end)
     end
+
+    frame.displayRefreshElapsed = 0
+    frame:SetScript("OnUpdate", function(self, elapsed)
+        self.displayRefreshElapsed = self.displayRefreshElapsed + elapsed
+        if self.displayRefreshElapsed < DISPLAY_REFRESH_INTERVAL then
+            return
+        end
+        self.displayRefreshElapsed = 0
+
+        for _, data in pairs(addon.targetingPlayers) do
+            if not data.isTargeting then
+                addon:UpdateDisplay()
+                return
+            end
+        end
+    end)
 end
 
 function addon:UpdateDisplay()
@@ -327,7 +363,7 @@ function addon:UpdateDisplay()
         if data.pendingTRP3 then
             status = " |cff808080(loading)|r"
         elseif not data.isTargeting then
-            status = " |cff808080(recent)|r"
+            status = " |cff808080(last targeted " .. addon:FormatElapsedTime(GetTime() - data.lastSeen) .. " ago)|r"
         else
             status = ""
         end
@@ -456,7 +492,7 @@ function addon:CheckAllNameplates()
     end
 
     for name, data in pairs(addon.targetingPlayers) do
-        if not data.isTargeting and (GetTime() - data.lastSeen) > 300 then
+        if not data.isTargeting and (GetTime() - data.lastSeen) > TARGET_RETENTION_SECONDS then
             addon.targetingPlayers[name] = nil
         end
     end
