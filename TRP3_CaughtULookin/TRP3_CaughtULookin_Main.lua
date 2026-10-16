@@ -9,12 +9,6 @@ addon.TRP3_NamePlatesUtil = TRP3_NamePlatesUtil
 CULookinDB = CULookinDB or {
     pos = { x = 300, y = -250 },
     size = { width = 260, height = 250 },
-    minimap = { show = true, lock = false, minimapPos = 225 },
-}
-
-local function EnsureMinimapDB()
-    CULookinDB = CULookinDB or {}
-    CULookinDB.minimap = CULookinDB.minimap or { show = true, lock = false, minimapPos = 225 }
 end
 
 local function EnsureUI()
@@ -36,7 +30,7 @@ local function HideMainWindow()
     end
 end
 
-local function ToggleMainWindow()
+function addon:ToggleMainWindow()
     if not addon.frame then
         addon:InitializeUI()
     end
@@ -64,278 +58,20 @@ local function ToggleAllWindows()
     end
 end
 
-local function CreateMinimapSettingsProxy()
-    EnsureMinimapDB()
-
-    local function Read(_, key)
-        if key == "hide" then
-            return not CULookinDB.minimap.show
-        elseif key == "lock" then
-            return CULookinDB.minimap.lock
-        elseif key == "minimapPos" then
-            return CULookinDB.minimap.minimapPos
-        end
-    end
-
-    local function Write(_, key, value)
-        if key == "lock" then
-            CULookinDB.minimap.lock = value
-        elseif key == "minimapPos" then
-            CULookinDB.minimap.minimapPos = value
-        end
-    end
-
-    return setmetatable({}, { __index = Read, __newindex = Write })
-end
-
-function addon:EnsureSettings()
-    CULookinDB = CULookinDB or {}
-    CULookinDB.settings = CULookinDB.settings or {}
-    CULookinDB.settings.targetWindow = CULookinDB.settings.targetWindow or {}
-    CULookinDB.settings.historyWindow = CULookinDB.settings.historyWindow or {}
-    CULookinDB.settings.targetWindow.transparency = CULookinDB.settings.targetWindow.transparency or 1.0
-    CULookinDB.settings.targetWindow.rowHeight = CULookinDB.settings.targetWindow.rowHeight or 24
-    CULookinDB.settings.historyWindow.transparency = CULookinDB.settings.historyWindow.transparency or 1.0
-    CULookinDB.settings.historyWindow.rowHeight = CULookinDB.settings.historyWindow.rowHeight or 34
-end
-
-function addon:ApplyTransparency()
-    addon:EnsureSettings()
-    if addon.frame then
-        addon.frame:SetAlpha(CULookinDB.settings.targetWindow.transparency)
-    end
-    if addon.historyFrame then
-        addon.historyFrame:SetAlpha(CULookinDB.settings.historyWindow.transparency)
-    end
-end
-
-function addon:GetTargetRowHeight()
-    addon:EnsureSettings()
-    return CULookinDB.settings.targetWindow.rowHeight or 24
-end
-
-function addon:GetHistoryRowHeight()
-    addon:EnsureSettings()
-    return CULookinDB.settings.historyWindow.rowHeight or 34
-end
-
-local function OpenOptions()
-    if LibStub then
-        local AceConfigDialog = LibStub("AceConfigDialog-3.0", true)
-        if AceConfigDialog then
-            AceConfigDialog:Open("CaughtULookin")
-            return
-        end
-    end
-    if InterfaceOptionsFrame_OpenToCategory then
-        InterfaceOptionsFrame_OpenToCategory("Caught U Lookin")
-        return
-    end
-    print(ADDON_NAME .. ": AceConfig-3.0 is required to open the settings panel.")
-end
-
-local function RegisterAceOptions()
-    if not LibStub then
-        return
-    end
-    local AceConfig = LibStub("AceConfig-3.0", true)
-    local AceConfigDialog = LibStub("AceConfigDialog-3.0", true)
-    if not AceConfig or not AceConfigDialog then
-        return
-    end
-
-    local addonIcon = "|TInterface\\AddOns\\TRP3_CaughtULookin\\resources\\wow_whoslookin_icon_v2.dxt1.blp:16:16|t"
-    local options = {
-        name = "Caught U Lookin...now with settings!",
-        type = "group",
-        args = {
-            header = {
-                order = 1,
-                type = "description",
-                name = "",
-                fontSize = "medium",
-            },
-            targetTransparency = {
-                order = 2,
-                type = "range",
-                name = "Target Window Transparency",
-                desc = "Set the transparency for the main target window.",
-                min = 0.2,
-                max = 1.0,
-                step = 0.05,
-                isPercent = true,
-                get = function()
-                    addon:EnsureSettings()
-                    return CULookinDB.settings.targetWindow.transparency
-                end,
-                set = function(_, value)
-                    addon:EnsureSettings()
-                    CULookinDB.settings.targetWindow.transparency = value
-                    addon:ApplyTransparency()
-                end,
-            },
-            historyTransparency = {
-                order = 3,
-                type = "range",
-                name = "History Window Transparency",
-                desc = "Set the transparency for the history window.",
-                min = 0.2,
-                max = 1.0,
-                step = 0.05,
-                isPercent = true,
-                get = function()
-                    addon:EnsureSettings()
-                    return CULookinDB.settings.historyWindow.transparency
-                end,
-                set = function(_, value)
-                    addon:EnsureSettings()
-                    CULookinDB.settings.historyWindow.transparency = value
-                    addon:ApplyTransparency()
-                end,
-            },
-            targetRowHeight = {
-                order = 4,
-                type = "range",
-                name = "Target Row Height",
-                desc = "Set the minimum row height for the main target list.",
-                min = 18,
-                max = 60,
-                step = 1,
-                get = function()
-                    addon:EnsureSettings()
-                    return CULookinDB.settings.targetWindow.rowHeight
-                end,
-                set = function(_, value)
-                    addon:EnsureSettings()
-                    CULookinDB.settings.targetWindow.rowHeight = value
-                    if addon.UpdateDisplay then
-                        addon:UpdateDisplay()
-                    end
-                end,
-            },
-            historyRowHeight = {
-                order = 5,
-                type = "range",
-                name = "History Row Height",
-                desc = "Set the minimum row height for history list rows.",
-                min = 18,
-                max = 60,
-                step = 1,
-                get = function()
-                    addon:EnsureSettings()
-                    return CULookinDB.settings.historyWindow.rowHeight
-                end,
-                set = function(_, value)
-                    addon:EnsureSettings()
-                    CULookinDB.settings.historyWindow.rowHeight = value
-                    if addon.UpdateHistoryDisplay then
-                        addon:UpdateHistoryDisplay()
-                    end
-                end,
-            },
-        },
-    }
-
-    AceConfig:RegisterOptionsTable("CaughtULookin", options)
-    AceConfigDialog:AddToBlizOptions("CaughtULookin"," Caught U Lookin " .. addonIcon)
-end
-
-function addon:CreateMinimapButton()
-    if addon.minimapButton then
-        return
-    end
-
-    local ldbAvailable = LibStub ~= nil
-    if ldbAvailable then
-        local LibDataBroker = LibStub:GetLibrary("LibDataBroker-1.1", true)
-        local LibDBIcon = LibStub:GetLibrary("LibDBIcon-1.0", true)
-        local LibDBCompartment = LibStub:GetLibrary("LibDBCompartment-1.0", true)
-        if LibDataBroker and LibDBIcon then
-            EnsureMinimapDB()
-
-            local objectName = "Total RP 3: Caught U Lookin"
-            local object = LibDataBroker:NewDataObject(objectName, {
-                type = "launcher",
-                icon = "Interface\\AddOns\\TRP3_CaughtULookin\\resources\\wow_whoslookin_icon_v2.dxt1.blp",
-                OnClick = function(_, button)
-                    if button == "LeftButton" then
-                        ToggleMainWindow()
-                    elseif button == "RightButton" then
-                        addon:ToggleHistoryWindow()
-                    end
-                end,
-                OnTooltipShow = function(tooltip)
-                    tooltip:AddLine("Caught U Lookin")
-                    tooltip:AddLine("Left-click: toggle |cff00ff00Target Window|r", 1, 1, 1)
-                    tooltip:AddLine("Right-click: toggle |cff00ff00History Window|r", 1, 1, 1)
-                end,
-            })
-
-            addon.minimapButton = object
-            LibDBIcon:Register(objectName, object, CreateMinimapSettingsProxy())
-            if LibDBCompartment then
-                LibDBCompartment:Register(objectName, object)
-            end
-
-            if CULookinDB.minimap.show then
-                LibDBIcon:Refresh(objectName)
-            else
-                LibDBIcon:Hide(objectName)
-            end
-            return
-        end
-    end
-end
-
 function addon:OpenTRP3Profile(unit, realName)
     if not realName or realName == "" then
         return
     end
 
-    if TRP3_API and TRP3_API.utils and TRP3_API.utils.str and TRP3_API.utils.str.getUnitID and TRP3_API.register and TRP3_API.register.getUnitIDCurrentProfileSafe and TRP3_API.register.openPageByProfileID and TRP3_API.navigation and TRP3_API.navigation.openMainFrame then
-        local unitID = TRP3_API.utils.str.getUnitID(unit)
-        if not unitID and type(unit) == "string" then
-            local profile = TRP3_API.register.getUnitIDCurrentProfileSafe(unit)
-            if profile and next(profile) or unit:find(":") then
-                unitID = unit
-            end
-        end
-        if unitID then
-            local profile = TRP3_API.register.getUnitIDCurrentProfileSafe(unitID)
-            if profile and profile.profileID then
-                TRP3_API.register.openPageByProfileID(profile.profileID)
-                TRP3_API.navigation.openMainFrame()
-                return
-            end
-            if TRP3_API.register.openPageByUnitID then
-                TRP3_API.register.openPageByUnitID(unitID)
-                TRP3_API.navigation.openMainFrame()
-                return
-            end
-            -- TRP3 knows the unit ID, but the profile data is not yet ready. Fall back to the chat opener
-            -- so we can still attempt to open the profile by name.
-            local fullName = addon:MakeFullName(realName)
-            local command = "/trp3 open " .. fullName
-            ChatFrame_OpenChat(command)
-            C_Timer.After(0.1, function()
-                local editBox = ChatEdit_GetActiveWindow()
-                if editBox then
-                    ChatEdit_SendText(editBox)
-                end
-            end)
-            return
-        end
+    local fullName = addon:MakeFullName(realName)
+    fullName = fullName:gsub("%s+", "")
+    fullName = fullName:gsub("–", "-")
+
+    if not TRP3_API or not TRP3_API.slash or not TRP3_API.slash.openProfile then
+        error("TRP3_CaughtULookin: TRP3_API.slash.openProfile is unavailable")
     end
 
-    local fullName = addon:MakeFullName(realName)
-    local command = "/trp3 open " .. fullName
-    ChatFrame_OpenChat(command)
-    C_Timer.After(0.1, function()
-        local editBox = ChatEdit_GetActiveWindow()
-        if editBox then
-            ChatEdit_SendText(editBox)
-        end
-    end)
+    TRP3_API.slash.openProfile(fullName)
 end
 
 function addon:InitializeUI()
@@ -414,7 +150,7 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
         addon:InitializeUI()
-        RegisterAceOptions()
+        addon:RegisterAceOptions()
         addon:CreateMinimapButton()
         if addon.frame then
             addon.frame:Show()
@@ -461,7 +197,9 @@ addon.SlashCommands.Register("/culookin", {"/culookin", "/culook"}, {
     },
     main = {
         desc = "toggle the main target window",
-        func = ToggleMainWindow,
+        func = function()
+            addon:ToggleMainWindow()
+        end,
     },
     history = {
         desc = "toggle the history window",
@@ -471,7 +209,9 @@ addon.SlashCommands.Register("/culookin", {"/culookin", "/culook"}, {
     },
     options = {
         desc = "open the addon options panel",
-        func = OpenOptions,
+        func = function()
+            addon:OpenOptions()
+        end,
     },
     resetHistory = {
         desc = "clear saved history entries",
