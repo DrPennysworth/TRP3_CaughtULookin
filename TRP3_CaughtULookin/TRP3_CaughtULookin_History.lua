@@ -56,7 +56,7 @@ function addon:GetHistoryLineText(entry, iconSize)
 
     local stopText = addon:FormatHistoryTime(entry.stop)
     local durationText = addon:FormatHistoryDuration(entry.stop - (entry.start or entry.stop))
-    return string.format("%s - finished %s (%s)", visibleName, stopText, durationText)
+    return string.format("%s - targeted %s (for %s)", visibleName, stopText, durationText)
 end
 
 function addon:InitializeHistoryUI()
