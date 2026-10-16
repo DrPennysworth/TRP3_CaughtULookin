@@ -363,7 +363,7 @@ function addon:UpdateDisplay()
         if data.pendingTRP3 then
             status = " |cff808080(loading)|r"
         elseif not data.isTargeting then
-            status = " |cff808080(last targeted " .. addon:FormatElapsedTime(GetTime() - data.lastSeen) .. " ago)|r"
+            status = " |cff808080(targeted " .. addon:FormatElapsedTime(GetTime() - data.lastSeen) .. " ago)|r"
         else
             status = ""
         end
